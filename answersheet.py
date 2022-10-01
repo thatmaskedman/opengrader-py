@@ -1,15 +1,15 @@
-from array import ArrayType
 import numpy as np
+import numpy.typing as npt 
 from dataclasses import dataclass
-from collections import namedtuple
-from cv2 import cv
+# from collections import namedtuple
+# from cv2 import cv
 
 @dataclass
 class Answer:
     """
     """
     letter: str 
-    contour: ArrayType
+    contour: npt.NDArray[np.int32] = np.array([])
     filled: bool = False 
     threshold: float = 0.0
     
@@ -27,29 +27,27 @@ class Question:
 @dataclass
 class KeySheet:
     keytype: str
-    keys: dict[int, str]
+    keys: dict[int, str] = {}
 
-    def serialize() -> str:
-        pass
+    # def serialize() -> str:
+    #     return ""
 
 class AnswersSheet:
-    def __init__(self, contours: np.ndarray) -> None:
+    def __init__(self, contours: npt.NDArray[np.int32]) -> None:
         self.questions: list[Question] = [
             Question(n) 
             for n in range(1,51)
         ]
-        self.contours: np.ndarray = contours
+        self.contours: npt.NDArray[np.int32] = contours
         self.key_sheets: dict[str, KeySheet] = {
             'a': KeySheet('a'),
             'b': KeySheet('b'),
             'c': KeySheet('c'),
             'd': KeySheet('d'),
-    }
+        }
 
-    def set_contours(self, conts: np.ndarray) -> None:
+    def set_contours(self, conts: npt.NDArray[np.int32]) -> None:
         conts = conts.reshape((-1, 5))
         for question in self.questions:
             for k, v in zip(question.answers.keys(), conts):
                 question.answers[k].contour = v
-
-    
