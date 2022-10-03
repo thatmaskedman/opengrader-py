@@ -27,6 +27,8 @@ class DocumentProcessor:
         self.img_edged: npt.NDArray[Any] = np.copy(self.img) 
         self.contours: npt.NDArray[Any] = np.array([])
 
+        self.img
+
     def process(self):
         self.img_grayscaled = cv.cvtColor(self.img, cv.COLOR_BGR2GRAY)
         self.img_blured = cv.GaussianBlur(self.img, (5, 5), 0)
@@ -50,7 +52,6 @@ class DocumentProcessor:
  
         ordered_points[1] = box[np.argmin(diff)]
         ordered_points[3] = box[np.argmax(diff)]
-
 
         (tl, tr, br, bl) = ordered_points
         
@@ -78,69 +79,20 @@ class DocumentProcessor:
         self.img_warped = cv.warpPerspective(self.img, M, (maxWidth, maxHeight))
         self.img_scaled = cv.resize(self.img_warped, (self._WIDTH, self._HEIGHT))
         
-
-        print(ordered_points)
         cv.drawContours(self.img_marked_borders,[box],0,(0,0,255),2)
-
-
-
-        # _, self.img_thresh = cv.threshold(self.img_blured, 0, 127, cv.THRESH_BINARY_INV)
-        
-        # kernel = np.ones((5,5),np.uint8)
-        # self.img_dilated = cv.morphologyEx(self.img_blured, cv.MORPH_CLOSE, kernel, iterations= 3)        
-        
-        # self.img_edged = cv.Canny(self.img_blured, 75, 200)
-
-
-        # mask = np.zeros(self.img.shape[:2], np.uint8)
-        # bgdModel = np.zeros((1,65), np.float64)
-        # fgdModel = np.zeros((1,65), np.float64)
-        # rect = (20,20,self.img.shape[1]-20, self.img.shape[0]-20)
-        # cv.grabCut(self.img_dilated,mask,rect,bgdModel,fgdModel,5,cv.GC_INIT_WITH_RECT)
-        # mask2 = np.where((mask==2)|(mask==0),0,1).astype('uint8')
-        # self.img = self.img_dilated*mask2[:,:,np.newaxis]
-
-        # self.img_edged = cv.dilate(self.img_edged, cv.getStructuringElement(cv.MORPH_ELLIPSE, (10, 10)))
-
-        # Edge Detection.
-
-        # canny = cv2.Canny(gray, 0, 200)
-        # self.img_thresh = cv.adaptiveThreshold(self.img_blured,255,cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV,11,2)
-        # self.img_blured = cv.GaussianBlur(self.img_grayscaled, (5,5),0)
-        
-        # self.img_dilated = cv.dilate(self.img_thresh, cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5)))
-        # self.img_edged = cv.Canny(self.img_dilated, 0,100)
-
-        # self.contours, _ = cv.findContours(self.img_edged, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-
-        # sorted_contours = sorted(self.contours, key=lambda c: cv.arcLength(c, True), reverse=True)
-        # for contour in self.contours:
-        #     print(cv.contourArea(contour))
-
-        
-        # cv.drawContours(self.img_marked_borders, sorted_contours, 0, (0,0,255), 2)        
-        # cv.drawContours(self.img_marked_borders, self.contours, -1, (0,0,255), 2)        
-        # for contour in self.contours:
-        #     # (x,y,w,h) = cv.boundingRect(contour)
-        #     # cv.rectangle(self.img_marked_borders,(x,y),(x+w,y+h),(0,255,0),2
-        #     rect = cv.minAreaRect(contour)
-        #     box = cv.boxPoints(rect)
-        #     box = np.int0(box)
-        #     cv.drawContours(self.img_marked_borders, [box], -1, (0,0,255), 2)
-
-
 
     def _write_steps(self):
         steps: dict['str', Any] =  {
             'original': self.img,
             'warped': self.img_warped,
-            'scaled': self.img_scaled,
             'grayscaled': self.img_grayscaled,
-            'marked_points': self.img_marked_points,
-            # # 'threshed': self.img_thresh,
-            # 'blured': self.img_blured, 
             'edged': self.img_edged, 
             'dilated': self.img_dilated,
+            'marked_points': self.img_marked_points,
+            'scaled': self.img_scaled,
+
+            # # 'threshed': self.img_thresh,
+            # 'blured': self.img_blured, 
             'marked_borders': self.img_marked_borders,
         }
 
