@@ -19,6 +19,8 @@ class DocumentProcessor:
         self.img_marked_points: npt.NDArray[Any] = np.copy(img)
         self.img_marked_borders: npt.NDArray[Any] = np.copy(img)
         
+        self.img_scaled_edged = np.array([])
+
         self.img_dilated: npt.NDArray[Any] = np.array([])
         self.img_detected: npt.NDArray[Any] = np.array([])
         self.img_thresh: npt.NDArray[Any] = np.array([])
@@ -79,8 +81,18 @@ class DocumentProcessor:
         self.img_warped = cv.warpPerspective(self.img, M, (maxWidth, maxHeight))
         self.img_scaled = cv.resize(self.img_warped, (self._WIDTH, self._HEIGHT))
         
-        cv.drawContours(self.img_marked_borders,[box],0,(0,0,255),2)
+        # cv.drawContours(self.img_marked_borders,[box],0,(0,0,255),2)
+        
+        self.img_scaled_blured = cv.GaussianBlur(self.img_scaled, (5, 5), 0)
+        self.img_grayscaled = cv.cvtColor(self.img_scaled_blured, cv.COLOR_BGR2GRAY)
+        self.img_scaled_edged = cv.Canny(self.img_grayscaled, 50, 200)
+        # self.img_scaled_dilated = cv.dilate(self.img_scaled_edged, cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5)))
+        conts, _ = cv.findContours(self.img_scaled_edged, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE)
+        
+        cv.drawContours(self.img_scaled, conts, -1, self._BGR_RED, 1)
 
+        # self.img_scaled_dilated = cv.dilate(self.img_scaled_edged, cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5)))
+        
     def _write_steps(self):
         steps: dict['str', Any] =  {
             'original': self.img,
@@ -90,6 +102,10 @@ class DocumentProcessor:
             'dilated': self.img_dilated,
             'marked_points': self.img_marked_points,
             'scaled': self.img_scaled,
+            'scaled_blured': self.img_scaled_blured,
+            'scaled_edged': self.img_scaled_edged,
+            # 'scaled_dilated': self.img_scaled_dilated,
+            # 'scaled_dilated': self.img_scaled_dilated,
 
             # # 'threshed': self.img_thresh,
             # 'blured': self.img_blured, 
