@@ -8,7 +8,7 @@ class DocumentProcessor:
     _WIDTH = 816
 
     _BGR_RED: tuple[int, int, int] = (0, 0, 255)
-    
+
     def __init__(self, img: npt.NDArray[Any]) -> None:
         self.img = img
         self.img_original = img
