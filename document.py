@@ -19,7 +19,11 @@ class DocumentProcessor:
         self.img_marked_points: npt.NDArray[Any] = np.copy(img)
         self.img_marked_borders: npt.NDArray[Any] = np.copy(img)
         
+        self.img_scaled_adaptive_thresh = npt.NDArray[Any]
+
+        
         self.img_scaled_edged = np.array([])
+        
 
         self.img_dilated: npt.NDArray[Any] = np.array([])
         self.img_detected: npt.NDArray[Any] = np.array([])
@@ -56,6 +60,7 @@ class DocumentProcessor:
         ordered_points[3] = box[np.argmax(diff)]
 
         (tl, tr, br, bl) = ordered_points
+
         
         for i, point in enumerate(ordered_points):
             px, py =  tuple(map(int, point))
@@ -83,12 +88,27 @@ class DocumentProcessor:
         
         # cv.drawContours(self.img_marked_borders,[box],0,(0,0,255),2)
         
-        self.img_scaled_blured = cv.GaussianBlur(self.img_scaled, (5, 5), 0)
-        self.img_grayscaled = cv.cvtColor(self.img_scaled_blured, cv.COLOR_BGR2GRAY)
-        self.img_scaled_edged = cv.Canny(self.img_grayscaled, 50, 200)
+        self.img_scaled_grayscaled = cv.cvtColor(self.img_scaled, cv.COLOR_BGR2GRAY)
+        self.img_scaled_blured = cv.GaussianBlur(self.img_scaled_grayscaled, (5, 5), 0)
+        self.img_scaled_adaptive_thresh = cv.adaptiveThreshold(self.img_scaled_blured, 255,cv.ADAPTIVE_THRESH_GAUSSIAN_C,\
+            cv.THRESH_BINARY_INV,9,2)
+        self.img_scaled_edged = cv.Canny(self.img_scaled_blured, 50, 200)
+
+        self.img_scaled
         # self.img_scaled_dilated = cv.dilate(self.img_scaled_edged, cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5)))
         conts, _ = cv.findContours(self.img_scaled_edged, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE)
         
+
+        # for i, c in enumerate(sorted(conts, key=cv.contourArea, reverse=True)[:180]):
+        for i, c in enumerate(conts):
+
+            (x,y), radius = cv.minEnclosingCircle(c)
+            radius = int(radius)
+            center = (int(x),int(y))
+            # cv.circle(self.img_scaled,center,10,(0,255,0),2)
+            cv.putText(self.img_scaled, str(i), center, cv.FONT_HERSHEY_PLAIN, 1, self._BGR_RED, 1)
+
+
         cv.drawContours(self.img_scaled, conts, -1, self._BGR_RED, 1)
 
         # self.img_scaled_dilated = cv.dilate(self.img_scaled_edged, cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5)))
@@ -102,6 +122,7 @@ class DocumentProcessor:
             'dilated': self.img_dilated,
             'marked_points': self.img_marked_points,
             'scaled': self.img_scaled,
+            'scaled_adaptive_thresh': self.img_scaled_adaptive_thresh,
             'scaled_blured': self.img_scaled_blured,
             'scaled_edged': self.img_scaled_edged,
             # 'scaled_dilated': self.img_scaled_dilated,
@@ -114,4 +135,4 @@ class DocumentProcessor:
 
         for i, item, in enumerate(steps.items()):
             k,v = item
-            cv.imwrite(f'{i}_{k}.jpg', v)
+            cv.imwrite(f'out/{i}_{k}.jpg', v)
