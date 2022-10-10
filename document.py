@@ -30,7 +30,6 @@ class DocumentProcessor:
         
         self.img_scaled_adaptive_thresh = npt.NDArray[Any]
 
-        
         self.img_scaled_edged = np.array([])
         self.img_scaled_regionA = np.array([])
         self.img_scaled_regionB = np.array([])
@@ -44,9 +43,12 @@ class DocumentProcessor:
         self.img_edged: npt.NDArray[Any] = np.copy(self.img)
         self.contours: npt.NDArray[Any] = np.array([])
 
-        self.img
-
     def process(self):
+        
+        def cont_centre_point(c):
+            (x, y), _ = cv.minEnclosingCircle(c)
+            return (int(x), int(y))
+
         self.img_grayscaled = cv.cvtColor(self.img, cv.COLOR_BGR2GRAY)
         self.img_blured = cv.GaussianBlur(self.img, (5, 5), 0)
         self.img_edged = cv.Canny(self.img_blured, 0, 100)
@@ -59,7 +61,7 @@ class DocumentProcessor:
         rect = cv.minAreaRect(doc_contour)
         box = cv.boxPoints(rect)
         box = np.int0(box)
-        print(box)
+
         ordered_points: npt.NDArray[Any] = np.zeros((4,2), dtype='float32')
         s = box.sum(axis=1)
         diff = np.diff(box, axis=1)
@@ -195,6 +197,24 @@ class DocumentProcessor:
         
         regionC_cont, _ = cv.findContours(self.img_scaled_regionC, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
         regionC_cont = sorted(regionC_cont, key=cv.contourArea, reverse=True)[:50]
+
+        regionA_point = map(cont_centre_point, regionA_cont)
+        regionA_point = sorted(regionA_point, key=lambda p: p[0])
+        regionA_point = sorted(regionA_point, key=lambda p: p[1])
+
+        regionB_point = map(cont_centre_point, regionB_cont)
+        regionB_point = sorted(regionB_point, key=lambda p: p[0])
+        regionB_point = sorted(regionB_point, key=lambda p: p[1])
+
+        regionC_point = map(cont_centre_point, regionC_cont)
+        regionC_point = sorted(regionC_point, key=lambda p: p[0])
+        regionC_point = sorted(regionC_point, key=lambda p: p[1])
+
+        choice_points = regionA_point + regionB_point + regionC_point
+
+        for i, p in enumerate(choice_points, 1):
+            # cv.circle(self.img_scaled, p, 1, self._BGR_RED)
+            cv.putText(self.img_scaled, str(i), p, cv.FONT_HERSHEY_SIMPLEX, 0.4, self._BGR_RED, 1)
                     
         cv.drawContours(self.img_scaled, regionC_cont, -1, self._BGR_RED, 1)
         cv.imwrite('out/foo.jpg', self.img_scaled_regionC)
