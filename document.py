@@ -49,6 +49,17 @@ class DocumentProcessor:
             (x, y), _ = cv.minEnclosingCircle(c)
             return (int(x), int(y))
 
+        def points_to_box(p, width):
+            px, py = p
+            w = width // 2
+            return np.array([
+                [px-w, py+w],
+                [px-w, py-w],
+                [px+w, py-w],
+                [px+w, py+w]
+            ])
+            
+
         self.img_grayscaled = cv.cvtColor(self.img, cv.COLOR_BGR2GRAY)
         self.img_blured = cv.GaussianBlur(self.img, (5, 5), 0)
         self.img_edged = cv.Canny(self.img_blured, 0, 100)
@@ -210,12 +221,14 @@ class DocumentProcessor:
         regionC_point = sorted(regionC_point, key=lambda p: p[0])
         regionC_point = sorted(regionC_point, key=lambda p: p[1])
 
-        choice_points = regionA_point + regionB_point + regionC_point
+        choice_points = np.array(regionA_point + regionB_point + regionC_point)
+        
+        choice_boxes = np.array(
+            list(map(lambda p: points_to_box(p, 30), choice_points))
+        )
 
-        for i, p in enumerate(choice_points, 1):
-            # cv.circle(self.img_scaled, p, 1, self._BGR_RED)
-            cv.putText(self.img_scaled, str(i), p, cv.FONT_HERSHEY_SIMPLEX, 0.4, self._BGR_RED, 1)
-                    
+
+        cv.drawContours(self.img_scaled, choice_boxes, -1, self._BGR_RED, 1)
         cv.drawContours(self.img_scaled, regionC_cont, -1, self._BGR_RED, 1)
         cv.imwrite('out/foo.jpg', self.img_scaled_regionC)
         # regionB_rect = cv.minAreaRect(regionB)
