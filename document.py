@@ -1,11 +1,20 @@
+from winreg import REG_OPTION_BACKUP_RESTORE
 import cv2 as cv
 import numpy as np
 import numpy.typing as npt
+import os
 from typing import Any
 
 class DocumentProcessor:
     _HEIGHT = 1056
     _WIDTH = 816
+
+    _SQUARE_MARKER = np.array([
+        [0, 0], 
+        [0, 50], 
+        [50, 50], 
+        [50, 0]
+    ])
 
     _BGR_RED: tuple[int, int, int] = (0, 0, 255)
 
@@ -23,14 +32,16 @@ class DocumentProcessor:
 
         
         self.img_scaled_edged = np.array([])
-        
+        self.img_scaled_regionA = np.array([])
+        self.img_scaled_regionB = np.array([])
+        self.img_scaled_regionC = np.array([])
 
         self.img_dilated: npt.NDArray[Any] = np.array([])
         self.img_detected: npt.NDArray[Any] = np.array([])
         self.img_thresh: npt.NDArray[Any] = np.array([])
         self.img_warped: npt.NDArray[Any] = np.array([])
         self.img_scaled: npt.NDArray[Any] = np.array([])
-        self.img_edged: npt.NDArray[Any] = np.copy(self.img) 
+        self.img_edged: npt.NDArray[Any] = np.copy(self.img)
         self.contours: npt.NDArray[Any] = np.array([])
 
         self.img
@@ -62,10 +73,10 @@ class DocumentProcessor:
         (tl, tr, br, bl) = ordered_points
 
         
-        for i, point in enumerate(ordered_points):
-            px, py =  tuple(map(int, point))
-            cv.putText(self.img_marked_points, f'P{i}', (px, py), cv.FONT_HERSHEY_PLAIN, 5, self._BGR_RED, 2)
-            cv.circle(self.img_marked_points, (px, py), 2, self._BGR_RED, 10)   
+        # for i, point in enumerate(ordered_points):
+        #     px, py =  tuple(map(int, point))
+        #     cv.putText(self.img_marked_points, f'P{i}', (px, py), cv.FONT_HERSHEY_PLAIN, 5, self._BGR_RED, 2)
+        #     cv.circle(self.img_marked_points, (px, py), 2, self._BGR_RED, 10)   
 
 
         widthA = np.sqrt(((br[0] - bl[0]) ** 2) + ((br[1] - bl[1]) ** 2))
@@ -94,22 +105,116 @@ class DocumentProcessor:
             cv.THRESH_BINARY_INV,9,2)
         self.img_scaled_edged = cv.Canny(self.img_scaled_blured, 50, 200)
 
-        self.img_scaled
         # self.img_scaled_dilated = cv.dilate(self.img_scaled_edged, cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5)))
-        conts, _ = cv.findContours(self.img_scaled_edged, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE)
+        conts, hierarchy = cv.findContours(self.img_scaled_adaptive_thresh, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE)
         
+        filtered_contours = []
+        for i, z in enumerate(zip(conts, hierarchy[0])):
+            c, h = z
+            _,_,child, _, = h
+            if child == -1:
+                continue
+            # (x,y), radius = cv.minEnclosingCircle(c)
+            # center = (int(x),int(y))
+            
+            filtered_contours.append(c)
+            # cv.drawContours(self.img_scaled, [c], -1, self._BGR_RED, 2)
+            # cv.putText(self.img_scaled, str(i), center, cv.FONT_HERSHEY_SIMPLEX, 1, self._BGR_RED, 2)
+        # cv.drawContours(self.img_scaled, [conts[24]], -1, self._BGR_RED, 1)
+        # print("TEST", conts[24])
 
-        # for i, c in enumerate(sorted(conts, key=cv.contourArea, reverse=True)[:180]):
-        for i, c in enumerate(conts):
+        sorted_c = sorted(filtered_contours, key=lambda x: cv.matchShapes(self._SQUARE_MARKER, x, cv.CONTOURS_MATCH_I3, 0))
+        sorted_a = sorted(sorted_c[:16], key=cv.contourArea, reverse=True)
 
-            (x,y), radius = cv.minEnclosingCircle(c)
-            radius = int(radius)
-            center = (int(x),int(y))
-            # cv.circle(self.img_scaled,center,10,(0,255,0),2)
-            cv.putText(self.img_scaled, str(i), center, cv.FONT_HERSHEY_PLAIN, 1, self._BGR_RED, 1)
+        # for c in map(cv.contourArea, sorted_c[:3]):
+            # print(c)
+        marker_borders = map(cv.minEnclosingCircle, sorted_a[:8])
+        marker_center = []
+
+        for i, c in enumerate(marker_borders):
+            (x, y), _ = c
+            p = int(x), int(y)
+            marker_center.append(p)
+            # cv.rectangle(self.img_scaled, 
+            # cv.putText(self.img_scaled, str(i), (x,y), cv.FONT_HERSHEY_SIMPLEX, 1, self._BGR_RED, 2)
+            
+        sorted_y = sorted(marker_center, key=lambda c: c[1], reverse=True)
+
+        bottom_markers = sorted_y[:4]
+        top_markers = sorted_y[4:]
+
+        print(len(top_markers))
+
+        bottom_markers = sorted(bottom_markers, key=lambda c: c[0])
+        top_markers = sorted(top_markers, key=lambda c: c[0])
+
+        marker_center = bottom_markers + top_markers 
+        
+        for i, c in enumerate(marker_center):
+            x, y = c
+            # marker_center.append((x,y))
+            # cv.rectangle(self.img_scaled, 
+            cv.putText(self.img_scaled, str(i), (x,y), cv.FONT_HERSHEY_SIMPLEX, 1, self._BGR_RED, 2)
+        
+        regionA = np.array([
+            marker_center[0], marker_center[1], 
+            marker_center[5], marker_center[4]
+        ])
+
+        regionB = np.array([
+            marker_center[1], marker_center[2], 
+            marker_center[6], marker_center[5]
+        ])
+
+        regionC = np.array([
+            marker_center[2], marker_center[3], 
+            marker_center[7], marker_center[6]
+        ])
+
+        maskA = np.zeros(self.img_scaled.shape[:2], dtype=np.uint8)
+        maskB = np.zeros(self.img_scaled.shape[:2], dtype=np.uint8)
+        maskC = np.zeros(self.img_scaled.shape[:2], dtype=np.uint8)
+
+        regions = [regionA, regionB, regionC]
+        mask_regions = [maskA, maskB, maskC]
+
+        for region, mask in zip(regions, mask_regions):
+            (x,y,w,h) = cv.boundingRect(region)
+            cv.rectangle(mask, (x+15,y+10), (x+w-20, y+h), (255,255,255), -1)
+        
+        maskA, maskB, maskC = tuple(mask_regions)
+        self.img_scaled_regionA = cv.bitwise_and(self.img_scaled_adaptive_thresh, maskA)
+        self.img_scaled_regionB = cv.bitwise_and(self.img_scaled_adaptive_thresh, maskB)
+        self.img_scaled_regionC = cv.bitwise_and(self.img_scaled_adaptive_thresh, maskC)
+
+        regionA_cont, _ = cv.findContours(self.img_scaled_regionA, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        regionA_cont = sorted(regionA_cont, key=cv.contourArea, reverse=True)[:100]
+
+        regionB_cont, _ = cv.findContours(self.img_scaled_regionB, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        regionB_cont = sorted(regionB_cont, key=cv.contourArea, reverse=True)[:100]
+        
+        regionC_cont, _ = cv.findContours(self.img_scaled_regionC, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        regionC_cont = sorted(regionC_cont, key=cv.contourArea, reverse=True)[:50]
+                    
+        cv.drawContours(self.img_scaled, regionC_cont, -1, self._BGR_RED, 1)
+        cv.imwrite('out/foo.jpg', self.img_scaled_regionC)
+        # regionB_rect = cv.minAreaRect(regionB)
+        # regionC_rect = cv.minAreaRect(regionC)
+        print(regionA)
+        # print(regionA_rect)
+
+        # cv.fillPoly(self.img_scaled, [regionA_rect], self._BGR_RED)
 
 
-        cv.drawContours(self.img_scaled, conts, -1, self._BGR_RED, 1)
+        cv.drawContours(self.img_scaled, sorted_a[:8], -1, self._BGR_RED, 1)
+
+            # radius = int(radius)
+            # center = (int(x),int(y))
+            # cv.circle(self.img_scaled,center,10, self._BGR_RED,2)
+            # cv.putText(self.img_scaled, str(i), center, cv.FONT_HERSHEY_SIMPLEX, 1, self._BGR_RED, 2)
+
+
+        # cv.drawContours(self.img_scaled, conts, -1, self._BGR_RED, 1)
 
         # self.img_scaled_dilated = cv.dilate(self.img_scaled_edged, cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5)))
         
@@ -132,6 +237,9 @@ class DocumentProcessor:
             # 'blured': self.img_blured, 
             'marked_borders': self.img_marked_borders,
         }
+
+        if not os.path.exists('out/'):
+            os.mkdir('out')
 
         for i, item, in enumerate(steps.items()):
             k,v = item
