@@ -15,6 +15,7 @@ def main():
     intensities = processor.get_intensities()
     answer_sheet = AnswerSheet(points, intensities)
     answer_sheet.set_data()
+    answer_sheet.grade()
     # AnswerSheet()
 
 if __name__ == '__main__':
