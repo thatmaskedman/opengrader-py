@@ -141,7 +141,7 @@ class AnswerSheet:
         for index, item in enumerate(zip(points, intensities), 1):
             point, intensity = item
             for p, i, letter in zip(point, intensity, it.cycle('abcde')):
-                choices.append(Choice(letter, index, i, p, filled= (i != 0.0)))
+                choices.append(Choice(letter, index, i, p, filled=(i != 0.0)))
 
         questions: list[Question] = []
         for n in range(1,51):
