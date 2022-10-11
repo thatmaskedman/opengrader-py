@@ -1,3 +1,4 @@
+from typing import Any
 import numpy as np
 import numpy.typing as npt
 import itertools as it 
@@ -23,17 +24,9 @@ class Choice:
 @dataclass
 class Question:
     number: int
-    answers: dict[str, Choice] = field(init=False) 
+    answers: dict[str, Choice] = field(default_factory=dict[str, Choice])
+    chosen: str = ''
     correct: bool = False
-
-    def __post_init__(self) -> None:
-        self.answers = {
-            'a': Choice('a', self.number),
-            'b': Choice('b', self.number),
-            'c': Choice('c', self.number),
-            'd': Choice('d', self.number),
-            'e': Choice('e', self.number),    
-        }
 
 @dataclass
 class KeySheet:
@@ -55,6 +48,9 @@ class AnswerSheet:
             Question(n) 
             for n in range(1,51)
         ]
+        self.question_count = 50
+        self.correct_count = 0
+        self.ratio = 0.0
         self.intensities = intensities
         self.points: npt.NDArray[np.int32] = points
         self.key_sheets: dict[str, KeySheet] = {
@@ -75,30 +71,98 @@ class AnswerSheet:
         dummy_key = KeySheet('a')
         dummy_key.keys = {
             1: 'a',
-            2: 'b',
+            2: 'e',
             3: 'c',
-            4: 'a',
+            4: 'c',
             5: 'b',
             6: 'c',
-            7: 'a',
-            8: 'b',
-            9: 'c',
-            10: 'c'
+            7: 'b',
+            8: 'c',
+            9: 'b',
+            10: 'b',
+            11: 'b',
+            12: 'a',
+            13: 'b',
+            14: 'e',
+            15: 'a',
+            16: 'e',
+            17: 'b',
+            18: 'a',
+            19: 'a',
+            20: 'e',
+            21: 'a',
+            22: 'b',
+            23: 'd',
+            24: 'e',
+            25: 'a',
+            26: 'a',
+            27: 'e',
+            28: 'c',
+            29: 'c',
+            30: 'a',
+            31: 'b',
+            32: 'a',
+            33: 'b',
+            34: 'b',
+            35: 'a',
+            36: 'a',
+            37: 'b',
+            38: 'a',
+            39: 'a',
+            40: 'd',
+            41: 'a',
+            42: 'a',
+            43: 'c',
+            44: 'e',
+            45: 'b',
+            46: 'e',
+            47: 'e',
+            48: 'e',
+            49: 'c',
+            50: 'c'
         }
+
+        mykey = {q.number: q.chosen for q in self.questions}
+
+        for q in self.questions:
+            q.correct = dummy_key.keys[q.number] == mykey[q.number]
+        
+        self.correct_count = len(list(filter(lambda q: q.correct, self.questions)))
+        
+        self.ratio = self.correct_count / self.question_count
+        print(self.correct_count)
+        print(self.ratio)
 
     def set_data(self) -> None:
         points = self.points.reshape((-1,5,2))
         intensities = self.intensities.reshape((-1,5))
         
         choices = [] 
-
         for index, item in enumerate(zip(points, intensities), 1):
             point, intensity = item
             for p, i, letter in zip(point, intensity, it.cycle('abcde')):
                 choices.append(Choice(letter, index, i, p, filled= (i != 0.0)))
 
-        for c in choices:
-            print(c)
+        questions: list[Question] = []
+        for n in range(1,51):
+            fields = {
+                choice.letter: choice 
+                for choice in filter(lambda c: c.number == n, choices)
+            }
+            questions.append(Question(n, fields))
+
+        for q in questions:
+            chosen = list(filter(lambda c: c.filled,  q.answers.values()))
+    
+            if len(chosen) == 1:
+                q.chosen = chosen[0].letter
+            
+            #FIXME
+            elif len(chosen) > 1:
+                pass
+
+            print(q, '\n')
+        self.questions = questions
         # for zip(points, intensities)
 
         # print(points)
