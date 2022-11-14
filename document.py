@@ -71,6 +71,7 @@ class DocumentProcessor:
 
         self.contours, _ = cv.findContours(self.img_dilated, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
         sorted_contours = sorted(self.contours, key=lambda c: cv.contourArea(c), reverse=True)
+
         doc_contour = sorted_contours[0]
 
         rect = cv.minAreaRect(doc_contour)
@@ -113,7 +114,13 @@ class DocumentProcessor:
         M = cv.getPerspectiveTransform(ordered_points, dst)
         self.img_warped = cv.warpPerspective(self.img, M, (maxWidth, maxHeight))
         self.img_scaled = cv.resize(self.img_warped, (self._WIDTH, self._HEIGHT))
+
+        if cv.contourArea(doc_contour) / self.img_grayscaled.size < 0.70:
+            raise Exception
         
+        print(cv.contourArea(doc_contour) / self.img_grayscaled.size, "NIxG")
+
+
         # cv.drawContours(self.img_marked_borders,[box],0,(0,0,255),2)
         
         self.img_scaled_grayscaled = cv.cvtColor(self.img_scaled, cv.COLOR_BGR2GRAY)
