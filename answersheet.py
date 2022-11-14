@@ -1,7 +1,10 @@
 from typing import Any
+import json
+import cv2 as cv
 import numpy as np
 import numpy.typing as npt
-import itertools as it 
+import itertools as it
+import urllib.request
 from dataclasses import dataclass, field
 # from collections import namedtuple
 # from cv2 import cv
@@ -39,11 +42,15 @@ class KeySheet:
 class AnswerSheet:
     _BGR_RED = (0,0,255)
     _BGR_YELLOW = (0,255,255)
-    _BGR_GREEN = (0,255,255)
+    _BGR_GREEN = (0,255,0)
 
-    def __init__(self, points: npt.NDArray[np.int32], intensities: npt.NDArray[np.float64]) -> None:
+    def __init__(self, img, points: npt.NDArray[np.int32], intensities: npt.NDArray[np.float64]) -> None:
+        self.img = img
         self.name = ''
         self.control_num = ''
+        self.img = img
+        self.name_img = np.array([])
+        self.control_num_img = np.array([])
         self.questions: list[Question] = [
             Question(n) 
             for n in range(1,51)
@@ -61,22 +68,19 @@ class AnswerSheet:
             'e': KeySheet('e'),
         }
 
-    def get_key(self):
-        for q in self.questions:
-            pass
-            
-        pass
-
+        self.questions_json = ''
+        self.graded_json = ''
+        
     def grade(self):
-        dummy_key = KeySheet('a')
+        dummy_key = self.key_sheets.get('a')
         dummy_key.keys = {
-            1: 'a',
+            1: 'b',
             2: 'e',
             3: 'c',
             4: 'c',
             5: 'b',
             6: 'c',
-            7: 'b',
+            7: 'a',
             8: 'c',
             9: 'b',
             10: 'b',
@@ -103,8 +107,8 @@ class AnswerSheet:
             31: 'b',
             32: 'a',
             33: 'b',
-            34: 'b',
-            35: 'a',
+            34: 'a',
+            35: 'c',
             36: 'a',
             37: 'b',
             38: 'a',
@@ -114,12 +118,12 @@ class AnswerSheet:
             42: 'a',
             43: 'c',
             44: 'e',
-            45: 'b',
-            46: 'e',
-            47: 'e',
-            48: 'e',
-            49: 'c',
-            50: 'c'
+            45: 'd',
+            46: 'd',
+            47: 'd',
+            48: 'd',
+            49: 'a',
+            50: 'e'
         }
 
         mykey = {q.number: q.chosen for q in self.questions}
@@ -128,10 +132,20 @@ class AnswerSheet:
             q.correct = dummy_key.keys[q.number] == mykey[q.number]
         
         self.correct_count = len(list(filter(lambda q: q.correct, self.questions)))
-        
         self.ratio = self.correct_count / self.question_count
+
         print(self.correct_count)
         print(self.ratio)
+
+    def mark_grade(self):
+        for q in filter(lambda q: q.correct, self.questions):
+            center = q.answers[q.chosen].point
+            cv.circle(self.img, center, 12, self._BGR_GREEN, 2)
+        
+        for q in filter(lambda q: not q.correct, self.questions):
+            if q.chosen != '':
+                center = q.answers[q.chosen].point
+                cv.circle(self.img, center, 12, self._BGR_RED, 2)
 
     def set_data(self) -> None:
         points = self.points.reshape((-1,5,2))
