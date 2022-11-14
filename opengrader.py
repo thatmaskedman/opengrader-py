@@ -13,9 +13,12 @@ def main():
     
     points = processor.get_choice_points()
     intensities = processor.get_intensities()
-    answer_sheet = AnswerSheet(points, intensities)
+    
+    answer_sheet = AnswerSheet(processor.img_scaled, points, intensities)
     answer_sheet.set_data()
     answer_sheet.grade()
+    answer_sheet.mark_grade()
+    cv.imwrite('graded.jpg', answer_sheet.img)
     # AnswerSheet()
 
 if __name__ == '__main__':

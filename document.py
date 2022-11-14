@@ -1,7 +1,7 @@
-from winreg import REG_OPTION_BACKUP_RESTORE
 import cv2 as cv
 import numpy as np
 import numpy.typing as npt
+import itertools as it 
 import os
 from typing import Any
 
@@ -18,6 +18,7 @@ class DocumentProcessor:
 
     _BGR_RED: tuple[int, int, int] = (0, 0, 255)
 
+    #TODO Clean up the constructor
     def __init__(self, img: npt.NDArray[Any]) -> None:
         self.img = img
         self.img_original = img
@@ -43,6 +44,10 @@ class DocumentProcessor:
         self.img_edged: npt.NDArray[Any] = np.copy(self.img)
         self.contours: npt.NDArray[Any] = np.array([])
 
+        self._choice_points = np.array([])
+        self._choice_boxes = np.array([])
+        self._choice_intensity = np.array([])
+
     def process(self):
         
         def cont_centre_point(c):
@@ -58,7 +63,6 @@ class DocumentProcessor:
                 [px+w, py-w],
                 [px+w, py+w]
             ])
-            
 
         self.img_grayscaled = cv.cvtColor(self.img, cv.COLOR_BGR2GRAY)
         self.img_blured = cv.GaussianBlur(self.img, (5, 5), 0)
@@ -116,6 +120,7 @@ class DocumentProcessor:
         self.img_scaled_blured = cv.GaussianBlur(self.img_scaled_grayscaled, (5, 5), 0)
         self.img_scaled_adaptive_thresh = cv.adaptiveThreshold(self.img_scaled_blured, 255,cv.ADAPTIVE_THRESH_GAUSSIAN_C,\
             cv.THRESH_BINARY_INV,9,2)
+        _, self.img_scaled_foobar = cv.threshold(self.img_scaled_blured, 127, 255, cv.THRESH_BINARY_INV)
         self.img_scaled_edged = cv.Canny(self.img_scaled_blured, 50, 200)
 
         # self.img_scaled_dilated = cv.dilate(self.img_scaled_edged, cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5)))
@@ -143,7 +148,7 @@ class DocumentProcessor:
             # print(c)
         marker_borders = map(cv.minEnclosingCircle, sorted_a[:8])
         marker_center = []
-
+        
         for i, c in enumerate(marker_borders):
             (x, y), _ = c
             p = int(x), int(y)
@@ -223,10 +228,20 @@ class DocumentProcessor:
 
         choice_points = np.array(regionA_point + regionB_point + regionC_point)
         
+        self._choice_points = choice_points
         choice_boxes = np.array(
-            list(map(lambda p: points_to_box(p, 30), choice_points))
+            list(map(lambda p: points_to_box(p, 10), choice_points))
         )
+        
+        choice_intensity = []
+        for c in choice_boxes:
+            m = np.zeros(self.img_scaled.shape[:2], np.uint8)
+            cv.fillPoly(m, [c], (255,255,255))
+            intensity, _, _, _ = cv.mean(self.img_scaled_foobar, mask=m)
+            choice_intensity.append(intensity)
 
+        self.choice_intensity = np.array(choice_intensity)
+        self.contours = choice_boxes
 
         cv.drawContours(self.img_scaled, choice_boxes, -1, self._BGR_RED, 1)
         cv.drawContours(self.img_scaled, regionC_cont, -1, self._BGR_RED, 1)
@@ -237,7 +252,6 @@ class DocumentProcessor:
         # print(regionA_rect)
 
         # cv.fillPoly(self.img_scaled, [regionA_rect], self._BGR_RED)
-
 
         cv.drawContours(self.img_scaled, sorted_a[:8], -1, self._BGR_RED, 1)
 
@@ -250,7 +264,16 @@ class DocumentProcessor:
         # cv.drawContours(self.img_scaled, conts, -1, self._BGR_RED, 1)
 
         # self.img_scaled_dilated = cv.dilate(self.img_scaled_edged, cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5)))
-        
+
+    def get_choice_boxes(self):
+        return self._choice_boxes
+    
+    def get_intensities(self):
+        return self.choice_intensity
+    
+    def get_choice_points(self):
+        return self._choice_points
+
     def _write_steps(self):
         steps: dict['str', Any] =  {
             'original': self.img,
@@ -263,6 +286,7 @@ class DocumentProcessor:
             'scaled_adaptive_thresh': self.img_scaled_adaptive_thresh,
             'scaled_blured': self.img_scaled_blured,
             'scaled_edged': self.img_scaled_edged,
+            'foobar': self.img_scaled_foobar,
             # 'scaled_dilated': self.img_scaled_dilated,
             # 'scaled_dilated': self.img_scaled_dilated,
 
