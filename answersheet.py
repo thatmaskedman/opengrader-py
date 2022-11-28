@@ -4,7 +4,7 @@ import cv2 as cv
 import numpy as np
 import numpy.typing as npt
 import itertools as it
-import urllib.request
+import requests
 from dataclasses import dataclass, field
 # from collections import namedtuple
 # from cv2 import cv
@@ -73,58 +73,7 @@ class AnswerSheet:
         
     def grade(self):
         dummy_key = self.key_sheets.get('a')
-        dummy_key.keys = {
-            1: 'b',
-            2: 'e',
-            3: 'c',
-            4: 'c',
-            5: 'b',
-            6: 'c',
-            7: 'a',
-            8: 'c',
-            9: 'b',
-            10: 'b',
-            11: 'b',
-            12: 'a',
-            13: 'b',
-            14: 'e',
-            15: 'a',
-            16: 'e',
-            17: 'b',
-            18: 'a',
-            19: 'a',
-            20: 'e',
-            21: 'a',
-            22: 'b',
-            23: 'd',
-            24: 'e',
-            25: 'a',
-            26: 'a',
-            27: 'e',
-            28: 'c',
-            29: 'c',
-            30: 'a',
-            31: 'b',
-            32: 'a',
-            33: 'b',
-            34: 'a',
-            35: 'c',
-            36: 'a',
-            37: 'b',
-            38: 'a',
-            39: 'a',
-            40: 'd',
-            41: 'a',
-            42: 'a',
-            43: 'c',
-            44: 'e',
-            45: 'd',
-            46: 'd',
-            47: 'd',
-            48: 'd',
-            49: 'a',
-            50: 'e'
-        }
+        
 
         mykey = {q.number: q.chosen for q in self.questions}
 
