@@ -1,79 +1,86 @@
-from typing import Any
+from typing import Any, TypedDict
 import json
 import cv2 as cv
 import numpy as np
 import numpy.typing as npt
 import itertools as it
 import requests
+import serializers
 from dataclasses import dataclass, field
 # from collections import namedtuple
 # from cv2 import cv
 
-@dataclass
-class Choice:
-    """
-    """
-    letter: str
+class QuestionData(TypedDict):
     number: int
-    intensity: float = 0.0
-    coord: str = field(init=False)
-    point: npt.NDArray[np.int32] = np.array([])
-    filled: bool = False 
+    a_thresh: float 
+    b_thresh: float 
+    c_thresh: float 
+    d_thresh: float
+    e_thresh: float
+    a_filled: bool
+    b_filled: bool
+    c_filled: bool
+    d_filled: bool
+    e_filled: bool
 
-    def __post_init__(self):
-        self.coord = f'{self.number}{self.letter}'
-    
-    
-@dataclass
-class Question:
-    number: int
-    answers: dict[str, Choice] = field(default_factory=dict[str, Choice])
-    chosen: str = ''
-    correct: bool = False
-
-@dataclass
-class KeySheet:
-    keytype: str
-    keys: dict[int, str] = field(default_factory=dict[int, str])
-
-    # def serialize() -> str:
-    #     return ""
+class QuestionDatabaseFields(TypedDict):
+    graded_exam: int
 
 class AnswerSheet:
     _BGR_RED = (0,0,255)
     _BGR_YELLOW = (0,255,255)
     _BGR_GREEN = (0,255,0)
 
-    def __init__(self, img, points: npt.NDArray[np.int32], intensities: npt.NDArray[np.float64]) -> None:
+    def __init__(
+        self, 
+        img, 
+        points: npt.NDArray[np.int32],  
+        thresholds: npt.NDArray[np.float64], 
+        question_count: int, 
+        name: str = '',
+        control_num: str = '',
+        exam_group: int = None, 
+    ) -> None:
+
         self.img = img
-        self.name = ''
-        self.control_num = ''
+        self.name = name
+        self.control_num = control_num
         self.img = img
+        self_question_data: QuestionData = {}
+        self_keysheet_data: dict[Any, Any] = {}
         self.name_img = np.array([])
         self.control_num_img = np.array([])
-        self.questions: list[Question] = [
-            Question(n) 
-            for n in range(1,51)
-        ]
         self.question_count = 50
         self.correct_count = 0
         self.ratio = 0.0
-        self.intensities = intensities
+        self.thresholds = thresholds
         self.points: npt.NDArray[np.int32] = points
-        self.key_sheets: dict[str, KeySheet] = {
-            'a': KeySheet('a'),
-            'b': KeySheet('b'),
-            'c': KeySheet('c'),
-            'd': KeySheet('d'),
-            'e': KeySheet('e'),
-        }
+        
+    def set_data(self) -> None:
+        points = self.points.reshape((-1,5,2))
+        intensities = self.thresholds.reshape((-1,5))
+        
+        fields: list[QuestionData] = [] 
+        for index, item in enumerate(zip(points, intensities), 1):
+            point, intensity = item
+            question: QuestionData = {}
+            for p, i, letter in zip(point, intensity, it.cycle('abcde')):
+                i = float(i)
+                question.update({
+                    'number': index, 
+                    f'{letter}_filled': i != 0.0,
+                    f'{letter}_thresh': i
+                }) 
+            fields.append(question)
 
-        self.questions_json = ''
-        self.graded_json = ''
-        
+        self.question_data = fields
+
+    #FIXME
     def grade(self):
-        dummy_key = self.key_sheets.get('a')
-        
+        with open('keys/dummykey.json', 'r') as f:
+            keys = json.load(f)
+        dummy_key = KeySheet('a', keys)
+        print(len(keys))
 
         mykey = {q.number: q.chosen for q in self.questions}
 
@@ -96,36 +103,6 @@ class AnswerSheet:
                 center = q.answers[q.chosen].point
                 cv.circle(self.img, center, 12, self._BGR_RED, 2)
 
-    def set_data(self) -> None:
-        points = self.points.reshape((-1,5,2))
-        intensities = self.intensities.reshape((-1,5))
-        
-        choices = [] 
-        for index, item in enumerate(zip(points, intensities), 1):
-            point, intensity = item
-            for p, i, letter in zip(point, intensity, it.cycle('abcde')):
-                choices.append(Choice(letter, index, i, p, filled=(i != 0.0)))
-
-        questions: list[Question] = []
-        for n in range(1,51):
-            fields = {
-                choice.letter: choice 
-                for choice in filter(lambda c: c.number == n, choices)
-            }
-            questions.append(Question(n, fields))
-
-        for q in questions:
-            chosen = list(filter(lambda c: c.filled,  q.answers.values()))
-    
-            if len(chosen) == 1:
-                q.chosen = chosen[0].letter
-            
-            #FIXME
-            elif len(chosen) > 1:
-                pass
-
-            print(q, '\n')
-        self.questions = questions
         # for zip(points, intensities)
 
         # print(points)
