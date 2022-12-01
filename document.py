@@ -48,6 +48,12 @@ class DocumentProcessor:
         self._choice_boxes = np.array([])
         self._choice_intensity = np.array([])
 
+
+    def scale(self):
+        pass
+        
+        
+
     def process(self):
         
         def cont_centre_point(c):
@@ -64,8 +70,18 @@ class DocumentProcessor:
                 [px+w, py+w]
             ])
 
+        def order_points(points: npt.ArrayLike):
+            points = points[points[:, 1].argsort()]
+        
+            ret = []
+            for point in points.reshape(-1,5,2):
+                ret.append(np.sort(point, axis=0))
+            
+            return np.array(ret) 
+                        
         self.img_grayscaled = cv.cvtColor(self.img, cv.COLOR_BGR2GRAY)
-        self.img_blured = cv.GaussianBlur(self.img, (5, 5), 0)
+        self.img_grayscaled = cv.copyMakeBorder(self.img_grayscaled, 30, 30, 30, 30, cv.BORDER_CONSTANT, value=(0,0,0))
+        self.img_blured = cv.GaussianBlur(self.img_grayscaled, (5, 5), 0)
         self.img_edged = cv.Canny(self.img_blured, 0, 100)
         self.img_dilated = cv.dilate(self.img_edged, cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5)))
 
@@ -109,16 +125,17 @@ class DocumentProcessor:
             [0, 0],
             [maxWidth - 1, 0],
             [maxWidth - 1, maxHeight - 1],
-            [0, maxHeight - 1]], dtype = "float32")
+            [0, maxHeight - 1]], dtype = "float32"
+        )
 
         M = cv.getPerspectiveTransform(ordered_points, dst)
         self.img_warped = cv.warpPerspective(self.img, M, (maxWidth, maxHeight))
         self.img_scaled = cv.resize(self.img_warped, (self._WIDTH, self._HEIGHT))
 
+        print(cv.contourArea(doc_contour) / self.img_grayscaled.size, "NIxG")
         if cv.contourArea(doc_contour) / self.img_grayscaled.size < 0.70:
             raise Exception
         
-        print(cv.contourArea(doc_contour) / self.img_grayscaled.size, "NIxG")
 
 
         # cv.drawContours(self.img_marked_borders,[box],0,(0,0,255),2)
@@ -134,6 +151,7 @@ class DocumentProcessor:
         conts, hierarchy = cv.findContours(self.img_scaled_adaptive_thresh, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE)
         
         filtered_contours = []
+
         for i, z in enumerate(zip(conts, hierarchy[0])):
             c, h = z
             _,_,child, _, = h
@@ -206,6 +224,7 @@ class DocumentProcessor:
         for region, mask in zip(regions, mask_regions):
             (x,y,w,h) = cv.boundingRect(region)
             cv.rectangle(mask, (x+15,y+10), (x+w-20, y+h), (255,255,255), -1)
+            cv.putText(self.img_scaled, str(i), (x,y), cv.FONT_HERSHEY_SIMPLEX, 1, self._BGR_RED, 2)
         
         maskA, maskB, maskC = tuple(mask_regions)
         self.img_scaled_regionA = cv.bitwise_and(self.img_scaled_adaptive_thresh, maskA)
@@ -221,25 +240,32 @@ class DocumentProcessor:
         regionC_cont, _ = cv.findContours(self.img_scaled_regionC, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
         regionC_cont = sorted(regionC_cont, key=cv.contourArea, reverse=True)[:50]
 
-        regionA_point = map(cont_centre_point, regionA_cont)
-        regionA_point = sorted(regionA_point, key=lambda p: p[0])
-        regionA_point = sorted(regionA_point, key=lambda p: p[1])
+        regionA_point = list(map(cont_centre_point, regionA_cont))
+        regionA_point = np.array(regionA_point)
+        regionA_point = order_points(regionA_point)
 
-        regionB_point = map(cont_centre_point, regionB_cont)
-        regionB_point = sorted(regionB_point, key=lambda p: p[0])
-        regionB_point = sorted(regionB_point, key=lambda p: p[1])
+        regionB_point = list(map(cont_centre_point, regionB_cont))
+        regionB_point = np.array(regionB_point)
+        regionB_point = order_points(regionB_point)
 
-        regionC_point = map(cont_centre_point, regionC_cont)
-        regionC_point = sorted(regionC_point, key=lambda p: p[0])
-        regionC_point = sorted(regionC_point, key=lambda p: p[1])
+        regionC_point = list(map(cont_centre_point, regionC_cont))
+        regionC_point = np.array(regionC_point)
+        regionC_point = order_points(regionC_point)
 
-        choice_points = np.array(regionA_point + regionB_point + regionC_point)
+        choice_points = np.concatenate((regionA_point, regionB_point, regionC_point))
+        print(choice_points)
+        # print(order_points(choice_points))
+        # choice_points.reshape((-1,5,2))
+
+
+        for i, p in enumerate(choice_points.reshape((-1,2))):
+            px, py = tuple(p)
+            cv.putText(self.img_scaled, str(i), (px-10,py+10), cv.FONT_HERSHEY_SIMPLEX, 0.4, (0,0,0), 1)
         
         self._choice_points = choice_points
         choice_boxes = np.array(
-            list(map(lambda p: points_to_box(p, 10), choice_points))
+            list(map(lambda p: points_to_box(p, 10), choice_points.reshape((-1,2))))
         )
-        
         choice_intensity = []
         for c in choice_boxes:
             m = np.zeros(self.img_scaled.shape[:2], np.uint8)
@@ -251,11 +277,11 @@ class DocumentProcessor:
         self.contours = choice_boxes
 
         cv.drawContours(self.img_scaled, choice_boxes, -1, self._BGR_RED, 1)
-        cv.drawContours(self.img_scaled, regionC_cont, -1, self._BGR_RED, 1)
+        # cv.drawContours(self.img_scaled, regionC_cont, -1, self._BGR_RED, 1)
         cv.imwrite('out/foo.jpg', self.img_scaled_regionC)
         # regionB_rect = cv.minAreaRect(regionB)
         # regionC_rect = cv.minAreaRect(regionC)
-        print(regionA)
+        # print(regionA)
         # print(regionA_rect)
 
         # cv.fillPoly(self.img_scaled, [regionA_rect], self._BGR_RED)
