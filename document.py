@@ -19,8 +19,9 @@ class DocumentProcessor:
     _BGR_RED: tuple[int, int, int] = (0, 0, 255)
 
     #TODO Clean up the constructor
-    def __init__(self, img: npt.NDArray[Any]) -> None:
-        self.img = img
+    def __init__(self, img_path: str) -> None:
+        self.img_path = img_path 
+        self.img = np.array([])
         self.img_original = img
         self.img_grayscaled: npt.NDArray[Any] = np.copy(img)
         self.img_blured: npt.NDArray[Any] = np.copy(img)
@@ -53,9 +54,8 @@ class DocumentProcessor:
         pass
         
         
-
     def process(self):
-        
+        self.img = cv.imread(self.img_path)
         def cont_centre_point(c):
             (x, y), _ = cv.minEnclosingCircle(c)
             return (int(x), int(y))
