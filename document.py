@@ -21,14 +21,14 @@ class DocumentProcessor:
     #TODO Clean up the constructor
     def __init__(self, img_path: str) -> None:
         self.img_path = img_path 
-        self.img = np.array([])
-        self.img_original = img
-        self.img_grayscaled: npt.NDArray[Any] = np.copy(img)
-        self.img_blured: npt.NDArray[Any] = np.copy(img)
+        self.img = cv.imread(self.img_path)
+        self.img_original = np.copy(self.img)
+        self.img_grayscaled: npt.NDArray[Any] = np.copy(self.img)
+        self.img_blured: npt.NDArray[Any] = np.copy(self.img)
         self.img_warped = np.array([])
         self.img_scaled = np.array([])
-        self.img_marked_points: npt.NDArray[Any] = np.copy(img)
-        self.img_marked_borders: npt.NDArray[Any] = np.copy(img)
+        self.img_marked_points: npt.NDArray[Any] = np.copy(self.img)
+        self.img_marked_borders: npt.NDArray[Any] = np.copy(self.img)
         
         self.img_scaled_adaptive_thresh = npt.NDArray[Any]
 
@@ -80,8 +80,8 @@ class DocumentProcessor:
             return np.array(ret) 
                         
         self.img_grayscaled = cv.cvtColor(self.img, cv.COLOR_BGR2GRAY)
-        self.img_grayscaled = cv.copyMakeBorder(self.img_grayscaled, 30, 30, 30, 30, cv.BORDER_CONSTANT, value=(0,0,0))
-        self.img_blured = cv.GaussianBlur(self.img_grayscaled, (5, 5), 0)
+        # self.img_grayscaled = cv.copyMakeBorder(self.img_grayscaled, 30, 30, 30, 30, cv.BORDER_CONSTANT, value=(0,0,0))
+        self.img_blured = cv.GaussianBlur(self.img, (5, 5), 0)
         self.img_edged = cv.Canny(self.img_blured, 0, 100)
         self.img_dilated = cv.dilate(self.img_edged, cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5)))
 
@@ -132,19 +132,17 @@ class DocumentProcessor:
         self.img_warped = cv.warpPerspective(self.img, M, (maxWidth, maxHeight))
         self.img_scaled = cv.resize(self.img_warped, (self._WIDTH, self._HEIGHT))
 
-        print(cv.contourArea(doc_contour) / self.img_grayscaled.size, "NIxG")
-        if cv.contourArea(doc_contour) / self.img_grayscaled.size < 0.70:
-            raise Exception
+        # print(cv.contourArea(doc_contour) / self.img_grayscaled.size, "NIxG")
+        # if cv.contourArea(doc_contour) / self.img_grayscaled.size < 0.70:
+        #     raise Exception
         
-
-
         # cv.drawContours(self.img_marked_borders,[box],0,(0,0,255),2)
         
         self.img_scaled_grayscaled = cv.cvtColor(self.img_scaled, cv.COLOR_BGR2GRAY)
         self.img_scaled_blured = cv.GaussianBlur(self.img_scaled_grayscaled, (5, 5), 0)
         self.img_scaled_adaptive_thresh = cv.adaptiveThreshold(self.img_scaled_blured, 255,cv.ADAPTIVE_THRESH_GAUSSIAN_C,\
             cv.THRESH_BINARY_INV,9,2)
-        _, self.img_scaled_foobar = cv.threshold(self.img_scaled_blured, 127, 255, cv.THRESH_BINARY_INV)
+        _, self.img_binary_thresh = cv.threshold(self.img_scaled_blured, 127, 255, cv.THRESH_BINARY_INV)
         self.img_scaled_edged = cv.Canny(self.img_scaled_blured, 50, 200)
 
         # self.img_scaled_dilated = cv.dilate(self.img_scaled_edged, cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5)))
@@ -224,7 +222,7 @@ class DocumentProcessor:
         for region, mask in zip(regions, mask_regions):
             (x,y,w,h) = cv.boundingRect(region)
             cv.rectangle(mask, (x+15,y+10), (x+w-20, y+h), (255,255,255), -1)
-            cv.putText(self.img_scaled, str(i), (x,y), cv.FONT_HERSHEY_SIMPLEX, 1, self._BGR_RED, 2)
+            # cv.putText(self.img_scaled, str(i), (x,y), cv.FONT_HERSHEY_SIMPLEX, 1, self._BGR_RED, 2)
         
         maskA, maskB, maskC = tuple(mask_regions)
         self.img_scaled_regionA = cv.bitwise_and(self.img_scaled_adaptive_thresh, maskA)
@@ -270,7 +268,7 @@ class DocumentProcessor:
         for c in choice_boxes:
             m = np.zeros(self.img_scaled.shape[:2], np.uint8)
             cv.fillPoly(m, [c], (255,255,255))
-            intensity, _, _, _ = cv.mean(self.img_scaled_foobar, mask=m)
+            intensity, _, _, _ = cv.mean(self.img_binary_thresh, mask=m)
             choice_intensity.append(intensity)
 
         self.choice_intensity = np.array(choice_intensity)
@@ -278,7 +276,7 @@ class DocumentProcessor:
 
         cv.drawContours(self.img_scaled, choice_boxes, -1, self._BGR_RED, 1)
         # cv.drawContours(self.img_scaled, regionC_cont, -1, self._BGR_RED, 1)
-        cv.imwrite('out/foo.jpg', self.img_scaled_regionC)
+        # cv.imwrite('out/foo.jpg', self.img_scaled_regionC)
         # regionB_rect = cv.minAreaRect(regionB)
         # regionC_rect = cv.minAreaRect(regionC)
         # print(regionA)
@@ -310,22 +308,22 @@ class DocumentProcessor:
     def _write_steps(self):
         steps: dict['str', Any] =  {
             'original': self.img,
-            'warped': self.img_warped,
             'grayscaled': self.img_grayscaled,
             'edged': self.img_edged, 
+            'blured': self.img_blured, 
             'dilated': self.img_dilated,
-            'marked_points': self.img_marked_points,
+            'warped': self.img_warped,
+            # 'marked_points': self.img_marked_points,
             'scaled': self.img_scaled,
-            'scaled_adaptive_thresh': self.img_scaled_adaptive_thresh,
             'scaled_blured': self.img_scaled_blured,
             'scaled_edged': self.img_scaled_edged,
-            'foobar': self.img_scaled_foobar,
+            'scaled_adaptive_thresh': self.img_scaled_adaptive_thresh,
+            'scaled_binary_thresh': self.img_binary_thresh,
             # 'scaled_dilated': self.img_scaled_dilated,
             # 'scaled_dilated': self.img_scaled_dilated,
 
             # # 'threshed': self.img_thresh,
-            # 'blured': self.img_blured, 
-            'marked_borders': self.img_marked_borders,
+            # 'marked_borders': self.img_marked_borders,
         }
 
         if not os.path.exists('out/'):
