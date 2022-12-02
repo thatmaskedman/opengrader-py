@@ -32,21 +32,19 @@ class AnswerSheet:
     _BGR_GREEN = (0,255,0)
 
     def __init__(
-        self, 
-        img, 
-        points: npt.NDArray[np.int32],  
-        thresholds: npt.NDArray[np.float64], 
-        question_count: int, 
-        name: str = '',
-        control_num: str = '',
-        exam_group: int = None, 
-    ) -> None:
+            self, 
+            img, 
+            points: npt.NDArray[np.int32],  
+            thresholds: npt.NDArray[np.float64], 
+            question_count: int, 
+            name: str = '',
+            control_num: str = '',
+            exam_group: int = None) -> None:
 
         self.img = img
+        self_question_data: QuestionData = {}
         self.name = name
         self.control_num = control_num
-        self.img = img
-        self_question_data: QuestionData = {}
         self_keysheet_data: dict[Any, Any] = {}
         self.name_img = np.array([])
         self.control_num_img = np.array([])
@@ -56,6 +54,7 @@ class AnswerSheet:
         self.thresholds = thresholds
         self.points: npt.NDArray[np.int32] = points
         
+
     def set_data(self) -> None:
         points = self.points.reshape((-1,5,2))
         intensities = self.thresholds.reshape((-1,5))
