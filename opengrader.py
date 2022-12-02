@@ -1,6 +1,5 @@
 import argparse
 
-from concurrent.futures import process
 import cv2 as cv
 import numpy as np
 from answersheet import AnswerSheet
@@ -17,8 +16,7 @@ def main():
 
     if args.exam:
         question_count = 50
-        img = cv.imread(args.exam)
-        processor = DocumentProcessor(img)
+        processor = DocumentProcessor(args.exam)
         processor.process()
         processor._write_steps()
     
