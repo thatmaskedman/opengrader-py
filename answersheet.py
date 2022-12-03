@@ -5,13 +5,16 @@ import numpy as np
 import numpy.typing as npt
 import itertools as it
 import requests
-import serializers
 from dataclasses import dataclass, field
-# from collections import namedtuple
-# from cv2 import cv
+
+class Examdata(TypedDict):
+    name: str
+    control_num: str 
+
 
 class QuestionData(TypedDict):
     number: int
+    chosen: str
     a_thresh: float 
     b_thresh: float 
     c_thresh: float 
@@ -22,9 +25,13 @@ class QuestionData(TypedDict):
     c_filled: bool
     d_filled: bool
     e_filled: bool
+    correct: bool
 
-class QuestionDatabaseFields(TypedDict):
-    graded_exam: int
+
+class KeyData(TypedDict):
+    number: int
+    chosen: str
+
 
 class AnswerSheet:
     _BGR_RED = (0,0,255)
@@ -34,15 +41,17 @@ class AnswerSheet:
     def __init__(
             self, 
             img, 
-            points: npt.NDArray[np.int32],  
+            points: npt.NDArray[np.int32],
             thresholds: npt.NDArray[np.float64], 
-            question_count: int, 
+            question_count: int,
             name: str = '',
-            control_num: str = '',
-            exam_group: int = None) -> None:
+            control_num: str = '', ) -> None:
 
         self.img = img
-        self_question_data: QuestionData = {}
+        self.img_graded = None
+        self.question_data: QuestionData = {}
+        self.graded_questions: QuestionData = {}
+        self.key_data: KeyData = {}
         self.name = name
         self.control_num = control_num
         self_keysheet_data: dict[Any, Any] = {}
@@ -62,52 +71,92 @@ class AnswerSheet:
         fields: list[QuestionData] = [] 
         for index, item in enumerate(zip(points, intensities), 1):
             point, intensity = item
-            question: QuestionData = {}
+            question: QuestionData = {'number': index, 'chosen': '', 'correct': False}
             for p, i, letter in zip(point, intensity, it.cycle('abcde')):
                 i = float(i)
                 question.update({
-                    'number': index, 
                     f'{letter}_filled': i != 0.0,
                     f'{letter}_thresh': i
                 }) 
             fields.append(question)
 
         self.question_data = fields
+    
+    def set_keydata(self, key_data: KeyData):
+        self.key_data = key_data
 
-    #FIXME
-    def grade(self):
-        with open('keys/dummykey.json', 'r') as f:
-            keys = json.load(f)
-        dummy_key = KeySheet('a', keys)
-        print(len(keys))
-
-        mykey = {q.number: q.chosen for q in self.questions}
-
-        for q in self.questions:
-            q.correct = dummy_key.keys[q.number] == mykey[q.number]
+    def choose_answers(self) -> None:
+        question: QuestionData
+        chosen_questions: list[QuestionData] = []
+        choices: dict[str, tuple[float, bool]]
+        chosen_candidates: dict[str, tuple[float, bool]]
         
-        self.correct_count = len(list(filter(lambda q: q.correct, self.questions)))
-        self.ratio = self.correct_count / self.question_count
+        for question in self.question_data:
+            choices = {
+                'a': (question['a_thresh'], question['a_filled']),
+                'b': (question['b_thresh'], question['b_filled']),
+                'c': (question['c_thresh'], question['c_filled']),
+                'd': (question['d_thresh'], question['d_filled']),
+                'e': (question['e_thresh'], question['e_filled']),
+            }
 
-        print(self.correct_count)
-        print(self.ratio)
+            chosen_candidates = {
+                choice: fields for choice, fields in choices.items() if fields[1]
+            }
+            if len(chosen_candidates) == 1:
+                chosen_letter, _ =  chosen_candidates.popitem()
+                chosen_fields: QuestionData = question.copy()
+                chosen_fields['chosen'] = chosen_letter
+                chosen_questions.append(chosen_fields)
 
-    def mark_grade(self):
-        for q in filter(lambda q: q.correct, self.questions):
-            center = q.answers[q.chosen].point
-            cv.circle(self.img, center, 12, self._BGR_GREEN, 2)
+            elif len(chosen_candidates) > 1:
+                chosen_letter, _ = sorted(chosen_candidates.items(), key=lambda c: c[1][0], reverse=True)[0]
+                chosen_fields: QuestionData = question.copy()
+                chosen_fields['chosen'] = chosen_letter
+                chosen_questions.append(chosen_fields)
+                
+            else:
+                chosen_questions.append(question)
+                 
+        self.question_data = chosen_questions
+
+
+    def grade_data(self):
+        graded_questions: list[QuestionData] = []
+        graded: dict[str, tuple[float, bool]]
         
-        for q in filter(lambda q: not q.correct, self.questions):
-            if q.chosen != '':
-                center = q.answers[q.chosen].point
-                cv.circle(self.img, center, 12, self._BGR_RED, 2)
+        question: QuestionData
+        for question, key in zip(self.question_data, self.key_data):
+            graded = question.copy()
+            graded['correct'] = question['chosen'] == key['chosen']
+            graded_questions.append(graded)
+        
+        self.question_data = graded_questions
 
-        # for zip(points, intensities)
+    
+    def mark_choices(self):
+        question: QuestionData
+        point: npt.ArrayLike
+        for question, point in zip(self.question_data, self.points):
+            a_choice, b_choice, c_choice, d_choice, e_choice = tuple(point)
+            dict[str, Any]
+            match question['chosen']:
+                case 'a':
+                    chosen = a_choice
+                case 'b':
+                    chosen = b_choice
+                case 'c':
+                    chosen = c_choice
+                case 'd':
+                    chosen = d_choice
+                case 'e':
+                    chosen = e_choice
+                case _:
+                    chosen = []
+            if not any(chosen):
+                continue
 
-        # print(points)
-        # print(intensities)
-        # for q, p in zip(self.questions, points):
-            # pass 
-        # for question in self.questions:
-        #     for k, v in zip(question.answers.keys(), points):
-        #         question.answers[k].point = v
+            if question['correct']:
+                cv.circle(self.img, chosen, 12, self._BGR_GREEN, 2)
+            else: 
+                cv.circle(self.img, chosen, 12, self._BGR_RED, 2)
