@@ -2,12 +2,11 @@ import json
 from dataclasses import dataclass, asdict, fields
 from typing import Dict, Protocol, Any 
 
-class JSONDataclassAdapter:
-    def __init__(self, dataclass_instance=None, many: None | list[Any] = None):
-        self.dataclass_instance = dataclass_instance
-        self.many = many
+class Serializable:
+    def as_dict(self) -> dict:
+        return {k:v for k, v in asdict(self).items() if v is not None}
 
-    def dumps(self) -> str:
+    def json_dumps(self) -> str:
         if self.many is not None:
             return json.dumps(
                 [asdict(item) for item in self.many]
@@ -16,8 +15,9 @@ class JSONDataclassAdapter:
             self.dataclass_instance
         ))
         
+
 @dataclass
-class Exam:
+class Exam(Serializable):
     exam_group: int
     key_sheet: int
     id: int = None
@@ -29,13 +29,12 @@ class Exam:
 
 
 @dataclass
-class Question:
-    exam: int
-    number: int
-    graded_exam: int = 0 
-    chosen: bool = False  
-    correct: bool = False
+class Question(Serializable):
+    number: int 
     id: int = None 
+    graded_exam: int = None 
+    chosen: str = ''  
+    correct: bool = False
     threshold: float = 0.0
     a_thresh: float = 0.0 
     b_thresh: float = 0.0 
@@ -50,7 +49,7 @@ class Question:
 
 
 @dataclass
-class KeySheet:
+class KeySheet(Serializable):
     key_class: str 
     exam_group: int
     id: int = None
