@@ -42,6 +42,7 @@ class DocumentProcessor:
         self.img_thresh: npt.NDArray[Any] = np.array([])
         self.img_warped: npt.NDArray[Any] = np.array([])
         self.img_scaled: npt.NDArray[Any] = np.array([])
+        self.img_scaled_marked_boxes = np.array([])
         self.img_edged: npt.NDArray[Any] = np.copy(self.img)
         self.contours: npt.NDArray[Any] = np.array([])
 
@@ -189,13 +190,16 @@ class DocumentProcessor:
         bottom_markers = sorted(bottom_markers, key=lambda c: c[0])
         top_markers = sorted(top_markers, key=lambda c: c[0])
 
+        #TODO Write assertions
         marker_center = bottom_markers + top_markers 
         
-        for i, c in enumerate(marker_center):
-            x, y = c
+
+        #TODO Write debug markers
+        # for i, c in enumerate(marker_center):
+            # x, y = c
             # marker_center.append((x,y))
             # cv.rectangle(self.img_scaled, 
-            cv.putText(self.img_scaled, str(i), (x,y), cv.FONT_HERSHEY_SIMPLEX, 1, self._BGR_RED, 2)
+            # cv.putText(self.img_scaled, str(i), (x,y), cv.FONT_HERSHEY_SIMPLEX, 1, self._BGR_RED, 2)
         
         regionA = np.array([
             marker_center[0], marker_center[1], 
@@ -251,14 +255,15 @@ class DocumentProcessor:
         regionC_point = order_points(regionC_point)
 
         choice_points = np.concatenate((regionA_point, regionB_point, regionC_point))
-        print(choice_points)
+        
+        # print(choice_points)
         # print(order_points(choice_points))
         # choice_points.reshape((-1,5,2))
 
-
-        for i, p in enumerate(choice_points.reshape((-1,2))):
-            px, py = tuple(p)
-            cv.putText(self.img_scaled, str(i), (px-10,py+10), cv.FONT_HERSHEY_SIMPLEX, 0.4, (0,0,0), 1)
+        #TODO write debug info
+        # for i, p in enumerate(choice_points.reshape((-1,2))):
+        #     px, py = tuple(p)
+        #     cv.putText(self.img_scaled, str(i), (px-10,py+10), cv.FONT_HERSHEY_SIMPLEX, 0.4, (0,0,0), 1)
         
         self._choice_points = choice_points
         choice_boxes = np.array(
@@ -273,8 +278,9 @@ class DocumentProcessor:
 
         self.choice_intensity = np.array(choice_intensity)
         self.contours = choice_boxes
-
-        cv.drawContours(self.img_scaled, choice_boxes, -1, self._BGR_RED, 1)
+        
+        self.img_scaled_marked_boxes = np.copy(self.img_scaled)
+        cv.drawContours(self.img_scaled_marked_boxes, choice_boxes, -1, self._BGR_RED, 1)
         # cv.drawContours(self.img_scaled, regionC_cont, -1, self._BGR_RED, 1)
         # cv.imwrite('out/foo.jpg', self.img_scaled_regionC)
         # regionB_rect = cv.minAreaRect(regionB)
@@ -284,7 +290,8 @@ class DocumentProcessor:
 
         # cv.fillPoly(self.img_scaled, [regionA_rect], self._BGR_RED)
 
-        cv.drawContours(self.img_scaled, sorted_a[:8], -1, self._BGR_RED, 1)
+        # self.img_scaled_marked np.copy
+        # cv.drawContours(self.img_scaled_, sorted_a[:8], -1, self._BGR_RED, 1)
 
             # radius = int(radius)
             # center = (int(x),int(y))
@@ -317,6 +324,7 @@ class DocumentProcessor:
             'scaled': self.img_scaled,
             'scaled_blured': self.img_scaled_blured,
             'scaled_edged': self.img_scaled_edged,
+            'scaled_marked_boxes': self.img_scaled_marked_boxes,
             'scaled_adaptive_thresh': self.img_scaled_adaptive_thresh,
             'scaled_binary_thresh': self.img_binary_thresh,
             # 'scaled_dilated': self.img_scaled_dilated,
