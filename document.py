@@ -258,8 +258,11 @@ class DocumentProcessor:
             self.img_scaled_regionC,
             cv.RETR_EXTERNAL, 
             cv.CHAIN_APPROX_SIMPLE)
-            
-        regionC_cont = sorted(regionC_cont, key=cv.contourArea, reverse=True)[:50]
+
+        regionC_cont = sorted(
+            regionC_cont, 
+            key=cv.contourArea, 
+            reverse=True)[:50]
 
         regionA_point = list(map(cont_centre_point, regionA_cont))
         regionA_point = np.array(regionA_point)
