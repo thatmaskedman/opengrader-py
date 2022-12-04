@@ -63,7 +63,6 @@ class AnswerSheet:
         self.thresholds = thresholds
         self.points: npt.NDArray[np.int32] = points
         
-
     def set_data(self) -> None:
         points = self.points.reshape((-1,5,2))
         intensities = self.thresholds.reshape((-1,5))
@@ -120,7 +119,6 @@ class AnswerSheet:
 
         self.question_data = chosen_questions
 
-
     def grade_data(self):
         graded_questions: list[QuestionData] = []
         graded: dict[str, tuple[float, bool]]
@@ -132,7 +130,6 @@ class AnswerSheet:
             graded_questions.append(graded)
 
         self.question_data = graded_questions
-
 
     def mark_choices(self):
         question: QuestionData

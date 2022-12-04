@@ -126,7 +126,7 @@ class DocumentProcessor:
             [0, 0],
             [maxWidth - 1, 0],
             [maxWidth - 1, maxHeight - 1],
-            [0, maxHeight - 1]], dtype = "float32"
+            [0, maxHeight - 1]], dtype="float32"
         )
 
         M = cv.getPerspectiveTransform(ordered_points, dst)
@@ -141,19 +141,24 @@ class DocumentProcessor:
         
         self.img_scaled_grayscaled = cv.cvtColor(self.img_scaled, cv.COLOR_BGR2GRAY)
         self.img_scaled_blured = cv.GaussianBlur(self.img_scaled_grayscaled, (5, 5), 0)
-        self.img_scaled_adaptive_thresh = cv.adaptiveThreshold(self.img_scaled_blured, 255,cv.ADAPTIVE_THRESH_GAUSSIAN_C,\
-            cv.THRESH_BINARY_INV,9,2)
+        self.img_scaled_adaptive_thresh = cv.adaptiveThreshold(
+            self.img_scaled_blured, 255,
+            cv.ADAPTIVE_THRESH_GAUSSIAN_C,
+            cv.THRESH_BINARY_INV, 9, 2)
         _, self.img_binary_thresh = cv.threshold(self.img_scaled_blured, 127, 255, cv.THRESH_BINARY_INV)
         self.img_scaled_edged = cv.Canny(self.img_scaled_blured, 50, 200)
 
         # self.img_scaled_dilated = cv.dilate(self.img_scaled_edged, cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5)))
-        conts, hierarchy = cv.findContours(self.img_scaled_adaptive_thresh, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE)
+        conts, hierarchy = cv.findContours(
+            self.img_scaled_adaptive_thresh, 
+            cv.RETR_CCOMP, 
+            cv.CHAIN_APPROX_SIMPLE)
         
         filtered_contours = []
 
         for i, z in enumerate(zip(conts, hierarchy[0])):
             c, h = z
-            _,_,child, _, = h
+            _, _, child, _, = h
             if child == -1:
                 continue
             # (x,y), radius = cv.minEnclosingCircle(c)
@@ -193,7 +198,6 @@ class DocumentProcessor:
         #TODO Write assertions
         marker_center = bottom_markers + top_markers 
         
-
         #TODO Write debug markers
         # for i, c in enumerate(marker_center):
             # x, y = c
@@ -233,13 +237,28 @@ class DocumentProcessor:
         self.img_scaled_regionB = cv.bitwise_and(self.img_scaled_adaptive_thresh, maskB)
         self.img_scaled_regionC = cv.bitwise_and(self.img_scaled_adaptive_thresh, maskC)
 
-        regionA_cont, _ = cv.findContours(self.img_scaled_regionA, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        regionA_cont, _ = cv.findContours(
+            self.img_scaled_regionA,
+            cv.RETR_EXTERNAL,
+            cv.CHAIN_APPROX_SIMPLE)
+        
         regionA_cont = sorted(regionA_cont, key=cv.contourArea, reverse=True)[:100]
 
-        regionB_cont, _ = cv.findContours(self.img_scaled_regionB, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-        regionB_cont = sorted(regionB_cont, key=cv.contourArea, reverse=True)[:100]
+        regionB_cont, _ = cv.findContours(
+            self.img_scaled_regionB,
+            cv.RETR_EXTERNAL,
+            cv.CHAIN_APPROX_SIMPLE)
+
+        regionB_cont = sorted(
+            regionB_cont,
+            key=cv.contourArea,
+            reverse=True)[:100]
         
-        regionC_cont, _ = cv.findContours(self.img_scaled_regionC, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        regionC_cont, _ = cv.findContours(
+            self.img_scaled_regionC,
+            cv.RETR_EXTERNAL, 
+            cv.CHAIN_APPROX_SIMPLE)
+            
         regionC_cont = sorted(regionC_cont, key=cv.contourArea, reverse=True)[:50]
 
         regionA_point = list(map(cont_centre_point, regionA_cont))
@@ -254,7 +273,10 @@ class DocumentProcessor:
         regionC_point = np.array(regionC_point)
         regionC_point = order_points(regionC_point)
 
-        choice_points = np.concatenate((regionA_point, regionB_point, regionC_point))
+        choice_points = np.concatenate((
+            regionA_point,
+            regionB_point,
+            regionC_point))
         
         # print(choice_points)
         # print(order_points(choice_points))
@@ -267,12 +289,14 @@ class DocumentProcessor:
         
         self._choice_points = choice_points
         choice_boxes = np.array(
-            list(map(lambda p: points_to_box(p, 10), choice_points.reshape((-1,2))))
+            list(map(
+                lambda p: points_to_box(p, 10),
+                choice_points.reshape((-1, 2))))
         )
         choice_intensity = []
         for c in choice_boxes:
             m = np.zeros(self.img_scaled.shape[:2], np.uint8)
-            cv.fillPoly(m, [c], (255,255,255))
+            cv.fillPoly(m, [c], (255, 255, 255))
             intensity, _, _, _ = cv.mean(self.img_binary_thresh, mask=m)
             choice_intensity.append(intensity)
 
@@ -280,7 +304,10 @@ class DocumentProcessor:
         self.contours = choice_boxes
         
         self.img_scaled_marked_boxes = np.copy(self.img_scaled)
-        cv.drawContours(self.img_scaled_marked_boxes, choice_boxes, -1, self._BGR_RED, 1)
+        cv.drawContours(
+            self.img_scaled_marked_boxes,
+            choice_boxes, -1,
+            self._BGR_RED, 1)
         # cv.drawContours(self.img_scaled, regionC_cont, -1, self._BGR_RED, 1)
         # cv.imwrite('out/foo.jpg', self.img_scaled_regionC)
         # regionB_rect = cv.minAreaRect(regionB)
