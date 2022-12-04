@@ -7,6 +7,7 @@ import itertools as it
 import requests
 from dataclasses import dataclass, field
 
+
 class Examdata(TypedDict):
     name: str
     control_num: str 
@@ -54,7 +55,6 @@ class AnswerSheet:
         self.key_data: KeyData = {}
         self.name = name
         self.control_num = control_num
-        self_keysheet_data: dict[Any, Any] = {}
         self.name_img = np.array([])
         self.control_num_img = np.array([])
         self.question_count = 50
@@ -117,23 +117,23 @@ class AnswerSheet:
                 
             else:
                 chosen_questions.append(question)
-                 
+
         self.question_data = chosen_questions
 
 
     def grade_data(self):
         graded_questions: list[QuestionData] = []
         graded: dict[str, tuple[float, bool]]
-        
+
         question: QuestionData
         for question, key in zip(self.question_data, self.key_data):
             graded = question.copy()
             graded['correct'] = question['chosen'] == key['chosen']
             graded_questions.append(graded)
-        
+
         self.question_data = graded_questions
 
-    
+
     def mark_choices(self):
         question: QuestionData
         point: npt.ArrayLike
