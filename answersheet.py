@@ -1,11 +1,11 @@
 from typing import Any, TypedDict
-import json
+# import json
 import cv2 as cv
 import numpy as np
 import numpy.typing as npt
 import itertools as it
-import requests
-from dataclasses import dataclass, field
+# import requests
+# from dataclasses import dataclass, field
 
 
 class Examdata(TypedDict):
@@ -13,12 +13,16 @@ class Examdata(TypedDict):
     control_num: str 
 
 
+class KeySheetData(TypedDict):
+    kind: str
+
+
 class QuestionData(TypedDict):
     number: int
     chosen: str
-    a_thresh: float 
-    b_thresh: float 
-    c_thresh: float 
+    a_thresh: float
+    b_thresh: float
+    c_thresh: float
     d_thresh: float
     e_thresh: float
     a_filled: bool
@@ -35,13 +39,13 @@ class KeyData(TypedDict):
 
 
 class AnswerSheet:
-    _BGR_RED = (0,0,255)
-    _BGR_YELLOW = (0,255,255)
-    _BGR_GREEN = (0,255,0)
+    _BGR_RED = (0, 0, 255)
+    _BGR_YELLOW = (0, 255, 255)
+    _BGR_GREEN = (0, 255, 0)
 
     def __init__(
-            self, 
-            img, 
+            self,
+            img,
             points: npt.NDArray[np.int32],
             thresholds: npt.NDArray[np.float64], 
             question_count: int,
@@ -62,25 +66,26 @@ class AnswerSheet:
         self.ratio = 0.0
         self.thresholds = thresholds
         self.points: npt.NDArray[np.int32] = points
-        
+
     def set_data(self) -> None:
-        points = self.points.reshape((-1,5,2))
-        intensities = self.thresholds.reshape((-1,5))
-        
-        fields: list[QuestionData] = [] 
+        points = self.points.reshape((-1, 5, 2))
+        intensities = self.thresholds.reshape((-1, 5))
+
+        fields: list[QuestionData] = []
         for index, item in enumerate(zip(points, intensities), 1):
             point, intensity = item
-            question: QuestionData = {'number': index, 'chosen': '', 'correct': False}
+            question: QuestionData = {
+                'number': index, 'chosen': '', 'correct': False}
             for p, i, letter in zip(point, intensity, it.cycle('abcde')):
                 i = float(i)
                 question.update({
                     f'{letter}_filled': i != 0.0,
                     f'{letter}_thresh': i
-                }) 
+                })
             fields.append(question)
 
         self.question_data = fields
-    
+
     def set_keydata(self, key_data: KeyData):
         self.key_data = key_data
 
@@ -103,17 +108,20 @@ class AnswerSheet:
                 choice: fields for choice, fields in choices.items() if fields[1]
             }
             if len(chosen_candidates) == 1:
-                chosen_letter, _ =  chosen_candidates.popitem()
+                chosen_letter, _ = chosen_candidates.popitem()
                 chosen_fields: QuestionData = question.copy()
                 chosen_fields['chosen'] = chosen_letter
                 chosen_questions.append(chosen_fields)
 
             elif len(chosen_candidates) > 1:
-                chosen_letter, _ = sorted(chosen_candidates.items(), key=lambda c: c[1][0], reverse=True)[0]
+                chosen_letter, _ = sorted(
+                    chosen_candidates.items(),
+                    key=lambda c: c[1][0],
+                    reverse=True)[0]
                 chosen_fields: QuestionData = question.copy()
                 chosen_fields['chosen'] = chosen_letter
                 chosen_questions.append(chosen_fields)
-                
+
             else:
                 chosen_questions.append(question)
 
