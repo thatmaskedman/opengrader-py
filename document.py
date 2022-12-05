@@ -1,7 +1,7 @@
 import cv2 as cv
 import numpy as np
 import numpy.typing as npt
-# import itertools as it 
+# import itertools as it
 import os
 from typing import Any
 
@@ -51,12 +51,12 @@ class DocumentProcessor:
         self._choice_boxes = np.array([])
         self._choice_intensity = np.array([])
 
-
     def scale(self):
         pass
         
     def process(self):
         self.img = cv.imread(self.img_path)
+        
         def cont_centre_point(c):
             (x, y), _ = cv.minEnclosingCircle(c)
             return (int(x), int(y))
@@ -87,7 +87,10 @@ class DocumentProcessor:
         self.img_dilated = cv.dilate(self.img_edged, cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5)))
 
         self.contours, _ = cv.findContours(self.img_dilated, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-        sorted_contours = sorted(self.contours, key=lambda c: cv.contourArea(c), reverse=True)
+        sorted_contours = sorted(
+            self.contours, 
+            key=lambda c: cv.contourArea(c),
+            reverse=True)
 
         doc_contour = sorted_contours[0]
 
