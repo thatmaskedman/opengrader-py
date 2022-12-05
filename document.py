@@ -1,24 +1,25 @@
 import cv2 as cv
 import numpy as np
 import numpy.typing as npt
-import itertools as it 
+# import itertools as it 
 import os
 from typing import Any
+
 
 class DocumentProcessor:
     _HEIGHT = 1056
     _WIDTH = 816
 
     _SQUARE_MARKER = np.array([
-        [0, 0], 
-        [0, 50], 
-        [50, 50], 
+        [0, 0],
+        [0, 50],
+        [50, 50],
         [50, 0]
     ])
 
     _BGR_RED: tuple[int, int, int] = (0, 0, 255)
 
-    #TODO Clean up the constructor
+    # TODO Clean up the constructor
     def __init__(self, img_path: str) -> None:
         self.img_path = img_path 
         self.img = cv.imread(self.img_path)
@@ -29,7 +30,7 @@ class DocumentProcessor:
         self.img_scaled = np.array([])
         self.img_marked_points: npt.NDArray[Any] = np.copy(self.img)
         self.img_marked_borders: npt.NDArray[Any] = np.copy(self.img)
-        
+
         self.img_scaled_adaptive_thresh = npt.NDArray[Any]
 
         self.img_scaled_edged = np.array([])
@@ -53,7 +54,6 @@ class DocumentProcessor:
 
     def scale(self):
         pass
-        
         
     def process(self):
         self.img = cv.imread(self.img_path)
@@ -174,7 +174,7 @@ class DocumentProcessor:
         sorted_a = sorted(sorted_c[:16], key=cv.contourArea, reverse=True)
 
         # for c in map(cv.contourArea, sorted_c[:3]):
-            # print(c)
+        #   print(c)
         marker_borders = map(cv.minEnclosingCircle, sorted_a[:8])
         marker_center = []
         
@@ -196,7 +196,7 @@ class DocumentProcessor:
         top_markers = sorted(top_markers, key=lambda c: c[0])
 
         #TODO Write assertions
-        marker_center = bottom_markers + top_markers 
+        marker_center = bottom_markers + top_markers
         
         #TODO Write debug markers
         # for i, c in enumerate(marker_center):
@@ -229,20 +229,28 @@ class DocumentProcessor:
 
         for region, mask in zip(regions, mask_regions):
             (x,y,w,h) = cv.boundingRect(region)
-            cv.rectangle(mask, (x+15,y+10), (x+w-20, y+h), (255,255,255), -1)
+            cv.rectangle(mask, (x+15, y+10), (x+w-20, y+h), (255, 255, 255), -1)
             # cv.putText(self.img_scaled, str(i), (x,y), cv.FONT_HERSHEY_SIMPLEX, 1, self._BGR_RED, 2)
         
         maskA, maskB, maskC = tuple(mask_regions)
-        self.img_scaled_regionA = cv.bitwise_and(self.img_scaled_adaptive_thresh, maskA)
-        self.img_scaled_regionB = cv.bitwise_and(self.img_scaled_adaptive_thresh, maskB)
-        self.img_scaled_regionC = cv.bitwise_and(self.img_scaled_adaptive_thresh, maskC)
+        
+        self.img_scaled_regionA = cv.bitwise_and(
+            self.img_scaled_adaptive_thresh, maskA)
+        
+        self.img_scaled_regionB = cv.bitwise_and(
+            self.img_scaled_adaptive_thresh, maskB)
+        
+        self.img_scaled_regionC = cv.bitwise_and(
+            self.img_scaled_adaptive_thresh, maskC)
 
         regionA_cont, _ = cv.findContours(
             self.img_scaled_regionA,
             cv.RETR_EXTERNAL,
             cv.CHAIN_APPROX_SIMPLE)
         
-        regionA_cont = sorted(regionA_cont, key=cv.contourArea, reverse=True)[:100]
+        regionA_cont = sorted(
+            regionA_cont,
+            key=cv.contourArea, reverse=True)[:100]
 
         regionB_cont, _ = cv.findContours(
             self.img_scaled_regionB,
@@ -260,8 +268,8 @@ class DocumentProcessor:
             cv.CHAIN_APPROX_SIMPLE)
 
         regionC_cont = sorted(
-            regionC_cont, 
-            key=cv.contourArea, 
+            regionC_cont,
+            key=cv.contourArea,
             reverse=True)[:50]
 
         regionA_point = list(map(cont_centre_point, regionA_cont))
@@ -343,7 +351,7 @@ class DocumentProcessor:
         return self._choice_points
 
     def _write_steps(self):
-        steps: dict['str', Any] =  {
+        steps: dict['str', Any] = {
             'original': self.img,
             'grayscaled': self.img_grayscaled,
             'edged': self.img_edged, 
@@ -368,5 +376,5 @@ class DocumentProcessor:
             os.mkdir('out')
 
         for i, item, in enumerate(steps.items()):
-            k,v = item
+            k, v = item
             cv.imwrite(f'out/{i}_{k}.jpg', v)
