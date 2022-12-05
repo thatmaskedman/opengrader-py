@@ -21,7 +21,7 @@ class DocumentProcessor:
 
     # TODO Clean up the constructor
     def __init__(self, img_path: str) -> None:
-        self.img_path = img_path 
+        self.img_path = img_path
         self.img = cv.imread(self.img_path)
         self.img_original = np.copy(self.img)
         self.img_grayscaled: npt.NDArray[Any] = np.copy(self.img)
@@ -101,7 +101,7 @@ class DocumentProcessor:
             cv.CHAIN_APPROX_SIMPLE)
 
         sorted_contours = sorted(
-            self.contours, 
+            self.contours,
             key=lambda c: cv.contourArea(c),
             reverse=True)
 
@@ -171,7 +171,8 @@ class DocumentProcessor:
             self.img_scaled_blured, 255,
             cv.ADAPTIVE_THRESH_GAUSSIAN_C,
             cv.THRESH_BINARY_INV, 9, 2)
-        _, self.img_binary_thresh = cv.threshold(self.img_scaled_blured, 127, 255, cv.THRESH_BINARY_INV)
+        _, self.img_binary_thresh = cv.threshold(
+            self.img_scaled_blured, 127, 255, cv.THRESH_BINARY_INV)
         self.img_scaled_edged = cv.Canny(self.img_scaled_blured, 50, 200)
 
         # self.img_scaled_dilated = cv.dilate(
@@ -202,7 +203,12 @@ class DocumentProcessor:
         # cv.drawContours(self.img_scaled, [conts[24]], -1, self._BGR_RED, 1)
         # print("TEST", conts[24])
 
-        sorted_c = sorted(filtered_contours, key=lambda x: cv.matchShapes(self._SQUARE_MARKER, x, cv.CONTOURS_MATCH_I3, 0))
+        sorted_c = sorted(
+            filtered_contours,
+            key=lambda x: cv.matchShapes(
+                self._SQUARE_MARKER,
+                x,
+                cv.CONTOURS_MATCH_I3, 0))
         sorted_a = sorted(sorted_c[:16], key=cv.contourArea, reverse=True)
 
         # for c in map(cv.contourArea, sorted_c[:3]):
@@ -311,7 +317,7 @@ class DocumentProcessor:
 
         regionC_cont, _ = cv.findContours(
             self.img_scaled_regionC,
-            cv.RETR_EXTERNAL, 
+            cv.RETR_EXTERNAL,
             cv.CHAIN_APPROX_SIMPLE)
 
         regionC_cont = sorted(
@@ -411,8 +417,8 @@ class DocumentProcessor:
         steps: dict['str', Any] = {
             'original': self.img,
             'grayscaled': self.img_grayscaled,
-            'edged': self.img_edged, 
-            'blured': self.img_blured, 
+            'edged': self.img_edged,
+            'blured': self.img_blured,
             'dilated': self.img_dilated,
             'warped': self.img_warped,
             # 'marked_points': self.img_marked_points,

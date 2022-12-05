@@ -10,7 +10,7 @@ import itertools as it
 
 class Examdata(TypedDict):
     name: str
-    control_num: str 
+    control_num: str
 
 
 class KeySheetData(TypedDict):
@@ -47,7 +47,7 @@ class AnswerSheet:
             self,
             img,
             points: npt.NDArray[np.int32],
-            thresholds: npt.NDArray[np.float64], 
+            thresholds: npt.NDArray[np.float64],
             question_count: int,
             name: str = '',
             control_num: str = '', ) -> None:
@@ -94,7 +94,7 @@ class AnswerSheet:
         chosen_questions: list[QuestionData] = []
         choices: dict[str, tuple[float, bool]]
         chosen_candidates: dict[str, tuple[float, bool]]
-        
+
         for question in self.question_data:
             choices = {
                 'a': (question['a_thresh'], question['a_filled']),
@@ -105,7 +105,9 @@ class AnswerSheet:
             }
 
             chosen_candidates = {
-                choice: fields for choice, fields in choices.items() if fields[1]
+                choice: fields
+                for choice, fields in choices.items()
+                if fields[1]
             }
             if len(chosen_candidates) == 1:
                 chosen_letter, _ = chosen_candidates.popitem()
@@ -163,5 +165,5 @@ class AnswerSheet:
 
             if question['correct']:
                 cv.circle(self.img, chosen, 12, self._BGR_GREEN, 2)
-            else: 
+            else:
                 cv.circle(self.img, chosen, 12, self._BGR_RED, 2)

@@ -2,21 +2,24 @@
 
 import argparse
 import cv2 as cv
-import numpy as np
+# import numpy as np
 from answersheet import AnswerSheet
 from document import DocumentProcessor
 from api_client import APIClient
 import serializers
 import json
 
+
 def main():
     parser = argparse.ArgumentParser(
         description='Opengrader CLI Tool'
     )
 
-    parser.add_argument('-e', '--exam', help='Path to the exam answer sheet.', required=True)
-    parser.add_argument('-k', '--keysheet', help='Path to the Key Sheet JSON answer file.')
-    
+    parser.add_argument(
+        '-e', '--exam', help='Path to the exam answer sheet.', required=True)
+    parser.add_argument('-k', '--keysheet',
+                        help='Path to the Key Sheet JSON answer file.')
+
     parser.add_argument('--grade', help='Attempt to grade.')
     parser.add_argument('--out', help='Specify output directory.')
     parser.add_argument('--url', help='Base URL')
@@ -27,11 +30,12 @@ def main():
         processor = DocumentProcessor(args.exam)
         processor.process()
         processor._write_steps()
-    
+
         points = processor.get_choice_points()
         intensities = processor.get_intensities()
-    
-        answer_sheet = AnswerSheet(processor.img_scaled, points, intensities, question_count)
+
+        answer_sheet = AnswerSheet(
+            processor.img_scaled, points, intensities, question_count)
         answer_sheet.set_data()
         # print(answer_sheet.question_data)
         answer_sheet.choose_answers()
@@ -49,14 +53,19 @@ def main():
             cv.imwrite('graded.jpg', answer_sheet.img)
 
         if args.url:
-            exam = serializers.Exam(1, 1, name="John Doe", control_number="17330462")
-            questions = [serializers.Question(**fields) for fields in answer_sheet.question_data]
+            exam = serializers.Exam(
+                1, 1, name="John Doe", control_number="17330462")
+
+            questions = [serializers.Question(
+                **fields) for fields in answer_sheet.question_data]
+
             client = APIClient(args.url)
             client.post_exam(exam=exam, questions=questions)
 
         # answer_sheet.grade()
         # answer_sheet.mark_grade()
         # AnswerSheet()
+
 
 if __name__ == '__main__':
     main()
