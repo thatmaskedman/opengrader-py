@@ -3,6 +3,7 @@ import numpy as np
 import numpy.typing as npt
 # import itertools as it
 import os
+import io
 from typing import Any
 
 
@@ -20,9 +21,9 @@ class DocumentProcessor:
     _BGR_RED: tuple[int, int, int] = (0, 0, 255)
 
     # TODO Clean up the constructor
-    def __init__(self, img_path: str) -> None:
-        self.img_path = img_path
-        self.img = cv.imread(self.img_path)
+    def __init__(self, img_bytes: io.BytesIO) -> None:
+        self.img = cv.imdecode(
+            np.frombuffer(img_bytes.read(), dtype=np.uint8), cv.IMREAD_COLOR)
         self.img_original = np.copy(self.img)
         self.img_grayscaled: npt.NDArray[Any] = np.copy(self.img)
         self.img_blured: npt.NDArray[Any] = np.copy(self.img)
@@ -55,8 +56,6 @@ class DocumentProcessor:
         pass
 
     def process(self):
-        self.img = cv.imread(self.img_path)
-
         def cont_centre_point(c):
             (x, y), _ = cv.minEnclosingCircle(c)
             return (int(x), int(y))

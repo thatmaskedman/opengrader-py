@@ -8,7 +8,7 @@ from cvprocessor.document import DocumentProcessor
 from restful.api_client import APIClient
 import common.serializers as serializers
 import json
-
+import io
 
 def main():
     parser = argparse.ArgumentParser(
@@ -27,7 +27,11 @@ def main():
 
     if args.exam:
         question_count = 50
-        processor = DocumentProcessor(args.exam)
+        img_bytes: io.BytesIO = None
+        with open(args.exam, 'rb') as f:
+            img_bytes = io.BytesIO(f.read())
+        
+        processor = DocumentProcessor(img_bytes)
         processor.process()
         processor._write_steps()
 
