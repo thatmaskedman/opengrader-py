@@ -10,6 +10,7 @@ import common.serializers as serializers
 import json
 import io
 
+
 def main():
     parser = argparse.ArgumentParser(
         description='Opengrader CLI Tool'
@@ -30,7 +31,7 @@ def main():
         img_bytes: io.BytesIO = None
         with open(args.exam, 'rb') as f:
             img_bytes = io.BytesIO(f.read())
-        
+
         processor = DocumentProcessor(img_bytes)
         processor.process()
         processor._write_steps()
