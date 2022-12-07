@@ -1,0 +1,43 @@
+1. Estamos utilizando la framework React y Typescript
+2. Utilizamos Vite para convertir Typescript y TSX a Javascript y HTML
+3. React es una framework para hacer componentes inteligentes que reaccionan a su estado
+4. Los componentes se crean mediante una función que retorna HTML u otros componentes de React.
+5. Los componentes se llaman en formato de etiqueta <Componente/>
+6. Los componentes pueden propiedades arbitrarias mediante props.children 
+7. Los componentes pueden ser reutilizados
+8. Los componentes pueden tener otros componentes
+9. Para garantizar que nuestro sitio sea responsivo utilizamos TailWindCSS, es decir clases de utilidad. 
+10. Para la comunicación entre el frontend y backend, utilizaremos Axios, para peticiones y respuestas. 
+    Verbos de HTTP:
+        GET: Verbo para leer información 
+            Ejemplo: http://opengrader.io/api/exams
+                Petición -> GET http://opengrader.io/api/exams
+                Respuesta -> ..[{id:1, nombre:'Juan Pérez', 'a_respuesta': 1 }...
+                    ...
+                    ]
+        POST: Verbo para crear nueva información en el servidor.
+            Ejemplo: http://opengrader.io/api/exams
+                Petición -> POST http://opengrader.io/api/exams
+                    {'nombre': 'Juan Perez', 'fecha': 100'}
+                Respuesta -> ..{id:1, nombre:'Juan Pérez', 'a_respuesta': 1 }...
+                    ...
+                    ]
+        
+        PUT: Verbo para modificar información en el servidor.
+            Ejemplo: http://opengrader.io/api/exams
+                Petición -> PUT http://opengrader.io/api/exams/{aquí va la id}
+                    Información anterior: {'id': 1, 'nombre': 'Juan Perez', 'fecha': 100'}
+                    Información nueva: {'nombre': 'Juan Núñez', 'fecha': 100'}
+                Respuesta -> ..{id:1, nombre:'Juan Númez'}...
+                    ...
+                    ]
+        DELETE: Verbo para borrar información información
+            Ejemplo: http://opengrader.io/api/exams/{aquí va la id}
+            Petición -> DELETE http://opengrader.io/api/exams/{aquí va la id}
+            Respuesta -> 200 OK
+
+11. Para manejo de rutas utilizaremos React-Router
+    opengrader.io/examenes
+    opengrader.io/gruposexamenes
+
+12. Para visualización de datos, la librería d3.js
