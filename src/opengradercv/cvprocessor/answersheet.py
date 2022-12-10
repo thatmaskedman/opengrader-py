@@ -54,8 +54,8 @@ class AnswerSheet:
 
         self.img = img
         self.img_graded = None
-        self.question_data: QuestionData = {}
-        self.graded_questions: QuestionData = {}
+        self.question_data: list[QuestionData] = []
+        self.graded_questions: list[QuestionData] = []
         self.key_data: KeyData = {}
         self.name = name
         self.control_num = control_num
